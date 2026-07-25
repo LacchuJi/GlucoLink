@@ -1,0 +1,23 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+enum Role { ADMIN DOCTOR PATIENT CARE_COORDINATOR }
+enum ReadingSource { MANUAL DEVICE_IMPORT WHATSAPP OCR HEALTH_CONNECT }
+enum MealContext { FASTING BEFORE_MEAL AFTER_MEAL BEDTIME RANDOM }
+enum AlertSeverity { INFO ATTENTION CRITICAL }
+enum SubscriptionStatus { TRIAL ACTIVE PAST_DUE CANCELED }
+
+model Organization { id String @id @default(cuid()) name String hospitals Hospital[] memberships Membership[] subscriptions Subscription[] createdAt DateTime @default(now()) }
+model Hospital { id String @id @default(cuid()) name String organizationId String organization Organization @relation(fields:[organizationId],references:[id]) patients Patient[] }
+model User { id String @id @default(cuid()) email String @unique name String role Role isActive Boolean @default(true) memberships Membership[] patient Patient? doctor Doctor? auditLogs AuditLog[] createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model Membership { id String @id @default(cuid()) organizationId String organization Organization @relation(fields:[organizationId],references:[id]) userId String user User @relation(fields:[userId],references:[id]) role Role @@unique([organizationId,userId]) }
+model Patient { id String @id @default(cuid()) userId String @unique user User @relation(fields:[userId],references:[id]) hospitalId String? hospital Hospital? @relation(fields:[hospitalId],references:[id]) readings Reading[] medications Medication[] careTeam CareAssignment[] alerts Alert[] notes DoctorNote[] }
+model Doctor { id String @id @default(cuid()) userId String @unique user User @relation(fields:[userId],references:[id]) specialty String? careTeam CareAssignment[] notes DoctorNote[] commissions Commission[] }
+model CareAssignment { id String @id @default(cuid()) patientId String patient Patient @relation(fields:[patientId],references:[id]) doctorId String doctor Doctor @relation(fields:[doctorId],references:[id]) @@unique([patientId,doctorId]) }
+model Reading { id String @id @default(cuid()) patientId String patient Patient @relation(fields:[patientId],references:[id]) valueMgDl Int context MealContext source ReadingSource verifiedAt DateTime? recordedAt DateTime notesEncrypted String? createdAt DateTime @default(now()) @@index([patientId,recordedAt]) }
+model Medication { id String @id @default(cuid()) patientId String patient Patient @relation(fields:[patientId],references:[id]) name String dose String schedule Json active Boolean @default(true) }
+model DoctorNote { id String @id @default(cuid()) patientId String patient Patient @relation(fields:[patientId],references:[id]) doctorId String doctor Doctor @relation(fields:[doctorId],references:[id]) bodyEncrypted String createdAt DateTime @default(now()) }
+model Alert { id String @id @default(cuid()) patientId String patient Patient @relation(fields:[patientId],references:[id]) severity AlertSeverity kind String resolvedAt DateTime? createdAt DateTime @default(now()) @@index([patientId,resolvedAt]) }
+model Subscription { id String @id @default(cuid()) organizationId String organization Organization @relation(fields:[organizationId],references:[id]) providerCustomerId String @unique plan String status SubscriptionStatus seats Int periodEnd DateTime }
+model Commission { id String @id @default(cuid()) doctorId String doctor Doctor @relation(fields:[doctorId],references:[id]) subscriptionId String amountMinor Int currency String @default("USD") rateBps Int earnedAt DateTime @default(now()) paidAt DateTime? @@index([doctorId,paidAt]) }
+model AuditLog { id String @id @default(cuid()) userId String? user User? @relation(fields:[userId],references:[id]) action String entityType String entityId String? ipHash String? metadata Json? createdAt DateTime @default(now()) @@index([createdAt]) }
