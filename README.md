@@ -1,6 +1,6 @@
 # GlucoLink
 
-Remote diabetes monitoring SaaS foundation. The current product slice is a responsive patient dashboard with validated manual reading capture and a deliberately separated clinical data model.
+An all-in-one blood sugar tracking and remote-monitoring platform for patients and care teams. The current product slice is a responsive patient dashboard with validated manual reading capture and a deliberately separated clinical data model.
 
 ## Product choices
 
