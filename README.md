@@ -1,2 +1,2 @@
 # GlucoLink
-Anall-in-one blood sugar tracking app for patients and doctors
+An all-in-one blood sugar tracking app for patients and doctors
