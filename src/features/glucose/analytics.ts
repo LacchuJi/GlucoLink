@@ -2,6 +2,7 @@ import type { GlucoseReading } from "./types";
 
 const inRange = (v: number) => v >= 70 && v <= 180;
 export function analytics(readings: GlucoseReading[]) {
+  if (!readings.length) return { average: 0, highEvents: 0, lowEvents: 0, tir: 0, a1c: "—", cv: 0 };
   const values = readings.map((r) => r.value);
   const avg = values.reduce((a, b) => a + b, 0) / values.length;
   const variance = values.reduce((sum, v) => sum + (v - avg) ** 2, 0) / values.length;

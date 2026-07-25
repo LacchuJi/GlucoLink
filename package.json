@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
+    "better-auth": "^1.6.25",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.468.0",
