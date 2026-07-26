@@ -5,3 +5,9 @@ node_modules
 coverage
 *.tsbuildinfo
 .next-dev-*.log
+scratch/
+tools/
+*.json.tmp
+dev_plan_*
+dev_plan.txt
+extract.py

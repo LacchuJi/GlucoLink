@@ -1,15 +1,7 @@
 export type PatientSnapshot = { id: string; name: string; initials: string; age: number; a1c: number; timeInRange: number; average: number; lastReading: number; lastLoggedHoursAgo: number; unreadMessages: number; lowEvents7d: number; trendPct14d: number };
 export type RiskBand = "critical" | "attention" | "stable";
-export type ClinicalAlert = { id: string; patientId: string; severity: "critical" | "attention"; title: string; explanation: string; action: string };
-
-export const patientSnapshots: PatientSnapshot[] = [
-  { id:"p1", name:"Maya Patel", initials:"MP", age:57, a1c:8.4, timeInRange:54, average:189, lastReading:241, lastLoggedHoursAgo:1, unreadMessages:1, lowEvents7d:0, trendPct14d:21 },
-  { id:"p2", name:"Robert Chen", initials:"RC", age:64, a1c:7.1, timeInRange:76, average:149, lastReading:112, lastLoggedHoursAgo:3, unreadMessages:0, lowEvents7d:3, trendPct14d:-2 },
-  { id:"p3", name:"Sarah Adams", initials:"SA", age:42, a1c:6.5, timeInRange:82, average:128, lastReading:119, lastLoggedHoursAgo:2, unreadMessages:2, lowEvents7d:0, trendPct14d:4 },
-  { id:"p4", name:"James Wilson", initials:"JW", age:51, a1c:7.8, timeInRange:61, average:171, lastReading:186, lastLoggedHoursAgo:38, unreadMessages:0, lowEvents7d:0, trendPct14d:11 },
-  { id:"p5", name:"Elena Garcia", initials:"EG", age:35, a1c:6.8, timeInRange:79, average:137, lastReading:133, lastLoggedHoursAgo:5, unreadMessages:0, lowEvents7d:0, trendPct14d:-5 },
-];
+export type ClinicalAlert = { id: string; patientId: string; severity: "critical" | "attention"; title: string; explanation: string; action: string; status?: string; triggeredAt?: string; ruleKey?: string };
 
 export function riskScore(p: PatientSnapshot) { return Math.min(100, (p.lastReading >= 250 ? 38 : p.lastReading > 180 ? 18 : 0) + (p.timeInRange < 55 ? 28 : p.timeInRange < 70 ? 13 : 0) + Math.min(24, p.lowEvents7d * 8) + (p.lastLoggedHoursAgo > 36 ? 20 : 0) + (p.trendPct14d >= 15 ? 15 : 0)); }
 export function riskBand(p: PatientSnapshot): RiskBand { const s = riskScore(p); return s >= 55 ? "critical" : s >= 20 ? "attention" : "stable"; }
-export function generateAlerts(patients: PatientSnapshot[]): ClinicalAlert[] { return patients.flatMap((p) => { const result: ClinicalAlert[] = []; if (p.lastReading >= 250) result.push({ id:`${p.id}-high`,patientId:p.id,severity:"critical",title:"Marked hyperglycemia",explanation:`Latest reading is ${p.lastReading} mg/dL, above the configured review threshold.`,action:"Review trend and contact patient" }); if(p.lowEvents7d >= 3) result.push({ id:`${p.id}-lows`,patientId:p.id,severity:"critical",title:"Repeated hypoglycemia",explanation:`${p.lowEvents7d} low events were logged in the last 7 days.`,action:"Assess medication and meal timing"}); if(p.lastLoggedHoursAgo > 36) result.push({id:`${p.id}-missing`,patientId:p.id,severity:"attention",title:"Monitoring gap",explanation:`No reading logged for ${p.lastLoggedHoursAgo} hours.`,action:"Send a check-in"}); if(p.trendPct14d >= 15) result.push({id:`${p.id}-trend`,patientId:p.id,severity:"attention",title:"Worsening 14-day trend",explanation:`Average glucose has risen ${p.trendPct14d}% over 14 days.`,action:"Review meal and adherence pattern"}); return result; }); }
+

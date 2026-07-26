@@ -1,2 +1,12 @@
 import { ClinicianDashboard } from "@/features/clinical/clinician-dashboard";
-export default function ClinicianPage() { return <ClinicianDashboard />; }
+import { requireDoctor } from "@/lib/access";
+import { redirect } from "next/navigation";
+
+export default async function ClinicianPage() {
+  try {
+    await requireDoctor();
+  } catch {
+    redirect("/");
+  }
+  return <ClinicianDashboard />; 
+}
