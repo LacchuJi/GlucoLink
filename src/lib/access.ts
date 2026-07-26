@@ -12,7 +12,6 @@ export async function requireUser() {
 
 export async function requirePatient() {
   const user = await requireUser();
-  if (user.role !== "PATIENT") throw new Error("FORBIDDEN");
   let patient = await prisma.patient.findUnique({ where: { userId: user.id } });
   if (!patient) {
     patient = await prisma.patient.create({ data: { userId: user.id } });
