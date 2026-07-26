@@ -13,6 +13,14 @@ const contextNames: Record<MealContext, string> = {
   RANDOM: "Random"
 };
 
+type ApiMessage = {
+  id: string;
+  senderId: string;
+  senderRole: "PATIENT" | "DOCTOR";
+  content: string;
+  createdAt: string;
+};
+
 export function Dashboard() {
   const [readings, setReadings] = useState<GlucoseReading[]>([]);
   const [open, setOpen] = useState(false);
@@ -28,17 +36,16 @@ export function Dashboard() {
     { id: "2", name: "Insulin Lispro", dosage: "4 units", timing: "Before breakfast (8:00 AM)", taken: true }
   ]);
 
-  // Messaging state
+  // DB-synced messaging state
   const [patientMsg, setPatientMsg] = useState("");
-  const [messages, setMessages] = useState([
-    { id: "1", sender: "patient", text: "Hello doctor, I noticed my morning fasting values were slightly higher today.", time: "08:30 AM" },
-    { id: "2", sender: "doctor", text: "Thank you for reaching out. Please make sure to log your post-meal reading as well.", time: "09:15 AM" }
-  ]);
+  const [messages, setMessages] = useState<ApiMessage[]>([]);
+  const [sendingMsg, setSendingMsg] = useState(false);
 
   const stats = useMemo(() => analytics(readings), [readings]);
   const current = readings.at(-1);
   const currentTrend = trend(readings);
 
+  // Fetch readings
   useEffect(() => {
     fetch("/api/readings")
       .then(async (response) => {
@@ -58,6 +65,24 @@ export function Dashboard() {
       .catch(() => setReadings([]))
       .finally(() => setLoading(false));
   }, []);
+
+  // Fetch & poll chat messages
+  const fetchMessages = () => {
+    fetch("/api/clinical/messages")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.messages) setMessages(data.messages);
+      })
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchMessages();
+    const interval = setInterval(() => {
+      if (activeTab === "messages") fetchMessages();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
 
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -90,14 +115,26 @@ export function Dashboard() {
     setOpen(false);
   }
 
-  function handleSendPatientMsg(e: FormEvent) {
+  async function handleSendPatientMsg(e: FormEvent) {
     e.preventDefault();
-    if (!patientMsg.trim()) return;
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now().toString(), sender: "patient", text: patientMsg, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }
-    ]);
-    setPatientMsg("");
+    if (!patientMsg.trim() || sendingMsg) return;
+    setSendingMsg(true);
+    try {
+      const res = await fetch("/api/clinical/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: patientMsg })
+      });
+      const data = await res.json();
+      if (data.message) {
+        setMessages((prev) => [...prev, data.message]);
+        setPatientMsg("");
+      }
+    } catch (err) {
+      console.error("Failed to send chat message:", err);
+    } finally {
+      setSendingMsg(false);
+    }
   }
 
   if (loading) return <main className="loading-screen">Loading your secure health record…</main>;
@@ -330,16 +367,17 @@ export function Dashboard() {
               <h2 style={{ fontSize: "18px", marginBottom: "16px" }}>Care Team Messaging</h2>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "320px", overflowY: "auto" }}>
                 {messages.map(m => (
-                  <div key={m.id} style={{ alignSelf: m.sender === "patient" ? "flex-end" : "flex-start", background: m.sender === "patient" ? "#188e69" : "#f4f8f6", color: m.sender === "patient" ? "#fff" : "#182521", padding: "12px 16px", borderRadius: "12px", maxWidth: "70%", fontSize: "14px" }}>
-                    <p style={{ margin: 0 }}>{m.text}</p>
-                    <small style={{ display: "block", textAlign: "right", color: m.sender === "patient" ? "#b7e3d4" : "#75817d", fontSize: "10px", marginTop: "4px" }}>{m.time}</small>
+                  <div key={m.id} style={{ alignSelf: m.senderRole === "PATIENT" ? "flex-end" : "flex-start", background: m.senderRole === "PATIENT" ? "#188e69" : "#f4f8f6", color: m.senderRole === "PATIENT" ? "#fff" : "#182521", padding: "12px 16px", borderRadius: "12px", maxWidth: "70%", fontSize: "14px" }}>
+                    <p style={{ margin: 0 }}>{m.content}</p>
+                    <small style={{ display: "block", textAlign: "right", color: m.senderRole === "PATIENT" ? "#b7e3d4" : "#75817d", fontSize: "10px", marginTop: "4px" }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
                   </div>
                 ))}
+                {!messages.length && <p style={{ color: "#888", padding: "2rem", textAlign: "center" }}>No messages yet. Send a message to your assigned care provider below!</p>}
               </div>
             </div>
             <form onSubmit={handleSendPatientMsg} style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
               <input value={patientMsg} onChange={e => setPatientMsg(e.target.value)} placeholder="Send a message to your clinical care team..." style={{ flex: 1, padding: "12px 16px", borderRadius: "9px", border: "1px solid #dce5e0", outline: "none", fontSize: "14px" }} />
-              <button className="submit" style={{ width: "auto", margin: 0, padding: "0 24px" }}>Send</button>
+              <button disabled={sendingMsg} className="submit" style={{ width: "auto", margin: 0, padding: "0 24px" }}>{sendingMsg ? "Sending..." : "Send"}</button>
             </form>
           </section>
         )}

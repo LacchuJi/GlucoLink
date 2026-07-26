@@ -7,4 +7,8 @@
 | Present design sections | Completed | User approved design |
 | Write design doc | Completed | Saved & committed `docs/plans/2026-07-27-synced-messaging-design.md` |
 | Invoke writing-plans | Completed | Saved & committed `docs/plans/2026-07-27-synced-messaging.md` |
-| Execute implementation plan | In Progress | Ready to execute via `.agent/workflows/execute-plan.md` |
+| Task 1: Schema Updates | Completed | Added `ChatMessage` model and pushed DB migration |
+| Task 2: Backend API Routes | Completed | Created `GET` and `POST` `/api/clinical/messages` with auth |
+| Task 3: Patient Messaging | Completed | Connected Patient Dashboard messaging tab with 3s auto-polling |
+| Task 4: Clinician Messaging | Completed | Connected Clinician Dashboard messaging tab with patient thread selection & 3s auto-polling |
+| Task 5: Verification & Tests | Completed | `tsc --noEmit` passed with 0 errors, Vitest passed |

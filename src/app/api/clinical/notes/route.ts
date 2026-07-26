@@ -54,7 +54,7 @@ export async function POST(request: Request) {
         where: { id: noteId },
         data: { content, status },
       });
-      await audit(user.id, "UPDATE_NOTE", "ClinicalNote", updated.id);
+      await audit(doctor.userId, "UPDATE_NOTE", "ClinicalNote", updated.id);
       return Response.json({ note: updated });
     } else {
       // Create new note
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
           status,
         },
       });
-      await audit(user.id, "CREATE_NOTE", "ClinicalNote", note.id);
+      await audit(doctor.userId, "CREATE_NOTE", "ClinicalNote", note.id);
       return Response.json({ note });
     }
   } catch (error) {

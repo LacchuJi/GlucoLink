@@ -3,6 +3,16 @@ import { useEffect, useMemo, useState, FormEvent } from "react";
 import { riskBand, riskScore, type PatientSnapshot, type ClinicalAlert } from "./triage";
 import Link from "next/link";
 
+type ApiMessage = {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  senderId: string;
+  senderRole: "PATIENT" | "DOCTOR";
+  content: string;
+  createdAt: string;
+};
+
 export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void } = {}) {
   const [activeTab, setActiveTab] = useState<"overview" | "patients" | "alerts" | "messages" | "reports" | "settings">("overview");
   const [query, setQuery] = useState("");
@@ -21,17 +31,20 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
   // Messaging state
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [chatMessage, setChatMessage] = useState("");
-  const [messages, setMessages] = useState<Array<{ id: string; sender: string; text: string; time: string }>>([
-    { id: "1", sender: "patient", text: "Hello doctor, I noticed my morning fasting values were slightly higher today.", time: "08:30 AM" },
-    { id: "2", sender: "doctor", text: "Thank you for reaching out. Please make sure to log your post-meal reading as well.", time: "09:15 AM" }
-  ]);
+  const [messages, setMessages] = useState<ApiMessage[]>([]);
+  const [sendingMsg, setSendingMsg] = useState(false);
 
   const loadData = () => {
     Promise.all([
       fetch("/api/clinical/patients").then(r => r.json()),
       fetch("/api/clinical/alerts").then(r => r.json())
     ]).then(([pRes, aRes]) => {
-      if (pRes.patients) setPatients(pRes.patients);
+      if (pRes.patients) {
+        setPatients(pRes.patients);
+        if (pRes.patients.length > 0 && !selectedPatientId) {
+          setSelectedPatientId(pRes.patients[0].id);
+        }
+      }
       if (aRes.alerts) setAlerts(aRes.alerts);
       setLoading(false);
     });
@@ -40,6 +53,25 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
   useEffect(() => {
     loadData();
   }, []);
+
+  // Fetch & poll chat messages for clinician
+  const fetchMessages = () => {
+    if (!selectedPatientId) return;
+    fetch(`/api/clinical/messages?patientId=${selectedPatientId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.messages) setMessages(data.messages);
+      })
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchMessages();
+    const interval = setInterval(() => {
+      if (activeTab === "messages") fetchMessages();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [activeTab, selectedPatientId]);
 
   async function resolveAlert(id: string) {
     const res = await fetch("/api/clinical/alerts", {
@@ -72,16 +104,26 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
     }
   }
 
-  function handleSendMessage(e: FormEvent) {
+  async function handleSendMessage(e: FormEvent) {
     e.preventDefault();
-    if (!chatMessage.trim()) return;
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      sender: "doctor",
-      text: chatMessage,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }]);
-    setChatMessage("");
+    if (!chatMessage.trim() || !selectedPatientId || sendingMsg) return;
+    setSendingMsg(true);
+    try {
+      const res = await fetch("/api/clinical/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patientId: selectedPatientId, content: chatMessage })
+      });
+      const data = await res.json();
+      if (data.message) {
+        setMessages((prev) => [...prev, data.message]);
+        setChatMessage("");
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    } finally {
+      setSendingMsg(false);
+    }
   }
 
   if (loading) return <main className="clinical-shell"><div style={{padding:"2rem"}}>Loading clinical workspace...</div></main>;
@@ -260,27 +302,28 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
         {activeTab === "messages" && (
           <section className="messages-tab" style={{ background: "#111", padding: "1.5rem", borderRadius: "12px", border: "1px solid #333", display: "grid", gridTemplateColumns: "250px 1fr", gap: "1.5rem", minHeight: "450px" }}>
             <div style={{ borderRight: "1px solid #222", paddingRight: "1rem" }}>
-              <h3 style={{ color: "#fff", fontSize: "14px", margin: "0 0 1rem 0" }}>Patients</h3>
+              <h3 style={{ color: "#fff", fontSize: "14px", margin: "0 0 1rem 0" }}>Assigned Patients</h3>
               {patients.map(p => (
                 <div key={p.id} onClick={() => setSelectedPatientId(p.id)} style={{ padding: "10px", borderRadius: "8px", background: selectedPatientId === p.id ? "#222" : "transparent", cursor: "pointer", color: "#fff", marginBottom: "0.5rem", border: "1px solid " + (selectedPatientId === p.id ? "#333" : "transparent") }}>
                   <strong style={{ display: "block", fontSize: "14px" }}>{p.name}</strong>
-                  <small style={{ color: "#888", fontSize: "12px" }}>Active dialogue</small>
+                  <small style={{ color: "#888", fontSize: "12px" }}>ID: {p.id.slice(0, 8)}</small>
                 </div>
               ))}
-              {!patients.length && <p style={{ color: "#777", fontSize: "13px" }}>No assigned patients.</p>}
+              {!patients.length && <p style={{ color: "#777", fontSize: "13px" }}>No assigned patients found.</p>}
             </div>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem", overflowY: "auto", paddingRight: "0.5rem", maxHeight: "350px" }}>
                 {messages.map(m => (
-                  <div key={m.id} style={{ alignSelf: m.sender === "doctor" ? "flex-end" : "flex-start", background: m.sender === "doctor" ? "#1e3a8a" : "#222", color: "#fff", padding: "10px 14px", borderRadius: "10px", maxWidth: "70%", fontSize: "14px" }}>
-                    <p style={{ margin: 0 }}>{m.text}</p>
-                    <small style={{ display: "block", textAlign: "right", color: "#aaa", fontSize: "10px", marginTop: "4px" }}>{m.time}</small>
+                  <div key={m.id} style={{ alignSelf: m.senderRole === "DOCTOR" ? "flex-end" : "flex-start", background: m.senderRole === "DOCTOR" ? "#1e3a8a" : "#222", color: "#fff", padding: "10px 14px", borderRadius: "10px", maxWidth: "70%", fontSize: "14px" }}>
+                    <p style={{ margin: 0 }}>{m.content}</p>
+                    <small style={{ display: "block", textAlign: "right", color: "#aaa", fontSize: "10px", marginTop: "4px" }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
                   </div>
                 ))}
+                {!messages.length && <p style={{ color: "#888", padding: "2rem", textAlign: "center" }}>No messages in this patient thread yet.</p>}
               </div>
               <form onSubmit={handleSendMessage} style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
                 <input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a secure message to patient..." style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid #333", background: "#222", color: "#fff", outline: "none", fontSize: "14px" }} />
-                <button style={{ padding: "10px 18px", background: "#4ade80", color: "#000", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>Send</button>
+                <button disabled={sendingMsg || !selectedPatientId} style={{ padding: "10px 18px", background: "#4ade80", color: "#000", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>{sendingMsg ? "Sending..." : "Send"}</button>
               </form>
             </div>
           </section>

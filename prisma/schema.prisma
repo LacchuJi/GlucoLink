@@ -72,6 +72,7 @@ model Patient {
   notes       ClinicalNote[]
   user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   readings    Reading[]
+  messages    ChatMessage[]
 }
 
 model Reading {
@@ -118,6 +119,7 @@ model Doctor {
   notes          ClinicalNote[]
   organization   Organization     @relation(fields: [organizationId], references: [id])
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages       ChatMessage[]
 }
 
 model CareAssignment {
@@ -159,6 +161,20 @@ model ClinicalNote {
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([patientId, createdAt])
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  patientId  String
+  doctorId   String
+  senderId   String
+  senderRole String   // "PATIENT" | "DOCTOR"
+  content    String
+  createdAt  DateTime @default(now())
+  doctor     Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, doctorId, createdAt])
 }
 
 enum Role {
