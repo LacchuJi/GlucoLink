@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState, FormEvent } from "react";
 import { riskBand, riskScore, type PatientSnapshot, type ClinicalAlert } from "./triage";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type ApiMessage = {
   id: string;
@@ -161,6 +162,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
             <p>{activeTab === "overview" ? "Prioritized signals from your remote monitoring panel." : activeTab === "patients" ? "Manage and review assigned patients." : activeTab === "alerts" ? "Active signals requiring review or decision support." : activeTab === "messages" ? "Direct communication feed with assigned patients." : activeTab === "reports" ? "Generate monthly RPM compliance and clinical summary reports." : "Configure clinic alert thresholds and practice preferences."}</p>
           </div>
           <div className="doctor-actions">
+            <ThemeToggle />
             <button className="outline-button" onClick={onToggleMode ?? (() => window.location.href = "/")} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>⇄ Switch to Patient View</button>
             <button className="outline-button" onClick={() => setActiveTab("reports")}>↓ Export report</button>
             <button className="add-patient" onClick={() => setIsAddOpen(true)}>＋ Add patient</button>

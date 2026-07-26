@@ -7,4 +7,7 @@
 | Present design sections | Completed | User approved design |
 | Write design doc | Completed | Saved & committed `docs/plans/2026-07-27-dark-mode-design.md` |
 | Invoke writing-plans | Completed | Saved & committed `docs/plans/2026-07-27-dark-mode.md` |
-| Execute implementation plan | In Progress | Ready to execute via `.agent/workflows/execute-plan.md` |
+| Task 1: CSS Theme Setup | Completed | Added `data-theme="dark"` styling tokens to `globals.css` & `clinical.css` |
+| Task 2: Reusable ThemeToggle | Completed | Built `<ThemeToggle />` component with `localStorage` persistence |
+| Task 3: Dashboard Integration | Completed | Rendered `<ThemeToggle />` in Patient and Clinician header action bars |
+| Task 4: Verification & Build | Completed | Typecheck passed 0 errors & Vitest unit tests 100% passed |

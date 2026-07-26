@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { analytics, buildChartPoints, trend } from "@/features/glucose/analytics";
 import { type GlucoseReading, type MealContext } from "@/features/glucose/types";
 import { ClinicianDashboard } from "@/features/clinical/clinician-dashboard";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const contextNames: Record<MealContext, string> = {
   FASTING: "Fasting",
@@ -170,6 +171,7 @@ export function Dashboard() {
             <p className="sub">{activeTab === "overview" ? "Here’s how your glucose is looking today." : activeTab === "readings" ? "View and manage all recorded blood sugar values." : activeTab === "history" ? "Analyze historical patterns and time in range." : activeTab === "careplan" ? "Track your daily prescribed medication regimen." : activeTab === "messages" ? "Communicate securely with your doctor and care team." : activeTab === "devices" ? "Manage synced glucose meters and Health Connect integration." : "Manage your target ranges and personal details."}</p>
           </div>
           <div className="header-actions">
+            <ThemeToggle />
             <button className="icon-btn" aria-label="Notifications">♧<b></b></button>
             <button className="profile">ME</button>
           </div>
