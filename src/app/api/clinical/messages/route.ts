@@ -4,7 +4,9 @@ import { z } from "zod";
 
 const postSchema = z.object({
   patientId: z.string().optional(),
-  content: z.string().min(1, "Message content cannot be empty")
+  content: z.string().min(1, "Message content cannot be empty"),
+  readingId: z.string().optional(),
+  attachmentJson: z.string().optional()
 });
 
 export async function GET(request: Request) {
@@ -22,57 +24,93 @@ export async function GET(request: Request) {
       
       targetDoctorId = doctor.id;
       if (!queryPatientId) {
-        // Return active patients list for messaging
         const assignments = await prisma.careAssignment.findMany({
           where: { doctorId: doctor.id },
           include: { patient: { include: { user: true } } }
         });
-        return Response.json({
-          patients: assignments.map(a => ({ id: a.patient.id, name: a.patient.user.name, email: a.patient.user.email })),
-          messages: []
-        });
+        
+        // Calculate unread count for each patient
+        const patientsWithUnread = await Promise.all(
+          assignments.map(async (a) => {
+            const unread = await prisma.chatMessage.count({
+              where: {
+                patientId: a.patient.id,
+                doctorId: doctor.id,
+                senderRole: "PATIENT",
+                isRead: false
+              }
+            });
+            return {
+              id: a.patient.id,
+              name: a.patient.user.name,
+              email: a.patient.user.email,
+              unreadCount: unread
+            };
+          })
+        );
+
+        return Response.json({ patients: patientsWithUnread, messages: [] });
       }
       targetPatientId = queryPatientId;
     } else {
-      // Patient user
       let patient = await prisma.patient.findUnique({ where: { userId: user.id } });
       if (!patient) {
         patient = await prisma.patient.create({ data: { userId: user.id } });
       }
       targetPatientId = patient.id;
 
-      // Find care assignment for doctor
-      const assignment = await prisma.careAssignment.findFirst({
+      let assignment = await prisma.careAssignment.findFirst({
         where: { patientId: patient.id }
       });
 
       if (!assignment) {
-        // Auto-assign to first doctor if demo care team
         const firstDoctor = await prisma.doctor.findFirst();
         if (firstDoctor) {
-          const newAssign = await prisma.careAssignment.create({
+          assignment = await prisma.careAssignment.create({
             data: { doctorId: firstDoctor.id, patientId: patient.id }
           });
-          targetDoctorId = newAssign.doctorId;
         }
-      } else {
-        targetDoctorId = assignment.doctorId;
       }
+      targetDoctorId = assignment?.doctorId ?? null;
     }
 
     if (!targetPatientId || !targetDoctorId) {
-      return Response.json({ messages: [] });
+      return Response.json({ messages: [], unreadCount: 0 });
     }
+
+    // Mark incoming messages as read
+    const oppositeRole = user.role === "DOCTOR" ? "PATIENT" : "DOCTOR";
+    await prisma.chatMessage.updateMany({
+      where: {
+        patientId: targetPatientId,
+        doctorId: targetDoctorId,
+        senderRole: oppositeRole,
+        isRead: false
+      },
+      data: { isRead: true, readAt: new Date() }
+    });
 
     const messages = await prisma.chatMessage.findMany({
       where: {
         patientId: targetPatientId,
         doctorId: targetDoctorId
       },
+      include: {
+        reading: true
+      },
       orderBy: { createdAt: "asc" }
     });
 
-    return Response.json({ messages });
+    const unreadCount = await prisma.chatMessage.count({
+      where: {
+        patientId: targetPatientId,
+        doctorId: targetDoctorId,
+        senderRole: oppositeRole,
+        isRead: false
+      }
+    });
+
+    return Response.json({ messages, unreadCount });
   } catch (error) {
     return Response.json({ error: "Failed to fetch messages" }, { status: 500 });
   }
@@ -87,7 +125,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Invalid message data" }, { status: 400 });
     }
 
-    const { content, patientId: bodyPatientId } = parsed.data;
+    const { content, patientId: bodyPatientId, readingId, attachmentJson } = parsed.data;
     let targetPatientId: string;
     let targetDoctorId: string;
     let senderRole: "PATIENT" | "DOCTOR";
@@ -130,7 +168,12 @@ export async function POST(request: Request) {
         doctorId: targetDoctorId,
         senderId: user.id,
         senderRole,
-        content
+        content,
+        readingId: readingId || null,
+        attachmentJson: attachmentJson || null
+      },
+      include: {
+        reading: true
       }
     });
 

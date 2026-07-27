@@ -20,7 +20,15 @@ type ApiMessage = {
   senderId: string;
   senderRole: "PATIENT" | "DOCTOR";
   content: string;
+  isRead?: boolean;
+  readAt?: string;
   createdAt: string;
+  reading?: {
+    valueMgDl: number;
+    context: MealContext;
+    recordedAt: string;
+  } | null;
+  attachmentJson?: string | null;
 };
 
 export function Dashboard() {
@@ -42,6 +50,11 @@ export function Dashboard() {
   const [patientMsg, setPatientMsg] = useState("");
   const [messages, setMessages] = useState<ApiMessage[]>([]);
   const [sendingMsg, setSendingMsg] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Attachment Modal
+  const [isAttachOpen, setIsAttachOpen] = useState(false);
+  const [selectedReadingForAttach, setSelectedReadingForAttach] = useState<string | null>(null);
 
   const stats = useMemo(() => analytics(readings), [readings]);
   const current = readings.at(-1);
@@ -74,6 +87,7 @@ export function Dashboard() {
       .then((res) => res.json())
       .then((data) => {
         if (data.messages) setMessages(data.messages);
+        if (typeof data.unreadCount === "number") setUnreadCount(data.unreadCount);
       })
       .catch(console.error);
   };
@@ -81,10 +95,10 @@ export function Dashboard() {
   useEffect(() => {
     fetchMessages();
     const interval = setInterval(() => {
-      if (activeTab === "messages") fetchMessages();
+      if (activeTab === "messages" || unreadCount > 0) fetchMessages();
     }, 3000);
     return () => clearInterval(interval);
-  }, [activeTab]);
+  }, [activeTab, unreadCount]);
 
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -119,23 +133,51 @@ export function Dashboard() {
 
   async function handleSendPatientMsg(e: FormEvent) {
     e.preventDefault();
-    if (!patientMsg.trim() || sendingMsg) return;
+    if ((!patientMsg.trim() && !selectedReadingForAttach) || sendingMsg) return;
     setSendingMsg(true);
     try {
+      const payload: { content: string; readingId?: string } = {
+        content: patientMsg.trim() || "Attached blood glucose reading for review."
+      };
+      if (selectedReadingForAttach) payload.readingId = selectedReadingForAttach;
+
       const res = await fetch("/api/clinical/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: patientMsg })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.message) {
         setMessages((prev) => [...prev, data.message]);
         setPatientMsg("");
+        setSelectedReadingForAttach(null);
+        setIsAttachOpen(false);
       }
     } catch (err) {
       console.error("Failed to send chat message:", err);
     } finally {
       setSendingMsg(false);
+    }
+  }
+
+  function handleAcceptDirective(attachmentJson: string) {
+    try {
+      const directive = JSON.parse(attachmentJson);
+      if (directive.medicationName && directive.newDosage) {
+        setMeds(prev => [
+          ...prev.filter(m => m.name !== directive.medicationName),
+          {
+            id: String(Date.now()),
+            name: directive.medicationName,
+            dosage: directive.newDosage,
+            timing: directive.timing || "Prescribed by Doctor",
+            taken: false
+          }
+        ]);
+        alert(`Accepted directive: Updated ${directive.medicationName} to ${directive.newDosage}`);
+      }
+    } catch {
+      alert("Care directive accepted.");
     }
   }
 
@@ -154,7 +196,7 @@ export function Dashboard() {
           <a className={activeTab === "readings" ? "active" : ""} onClick={() => setActiveTab("readings")} style={{ cursor: "pointer" }}>▣ <span>My readings</span></a>
           <a className={activeTab === "history" ? "active" : ""} onClick={() => setActiveTab("history")} style={{ cursor: "pointer" }}>◴ <span>History</span></a>
           <a className={activeTab === "careplan" ? "active" : ""} onClick={() => setActiveTab("careplan")} style={{ cursor: "pointer" }}>♡ <span>Care plan</span></a>
-          <a className={activeTab === "messages" ? "active" : ""} onClick={() => setActiveTab("messages")} style={{ cursor: "pointer" }}>▤ <span>Messages</span><i>{messages.length}</i></a>
+          <a className={activeTab === "messages" ? "active" : ""} onClick={() => setActiveTab("messages")} style={{ cursor: "pointer" }}>▤ <span>Messages</span>{unreadCount > 0 ? <i>{unreadCount}</i> : <b>{messages.length}</b>}</a>
           <a className={activeTab === "devices" ? "active" : ""} onClick={() => setActiveTab("devices")} style={{ cursor: "pointer" }}>◌ <span>Devices</span></a>
         </nav>
         <div className="side-bottom">
@@ -168,8 +210,8 @@ export function Dashboard() {
         <header>
           <div>
             <p className="eyebrow">YOUR SECURE HEALTH RECORD</p>
-            <h1>{activeTab === "overview" ? "Welcome back ✦" : activeTab === "readings" ? "My Readings Log" : activeTab === "history" ? "Glucose History & Trends" : activeTab === "careplan" ? "Care Plan & Medications" : activeTab === "messages" ? "Care Team Messages" : activeTab === "devices" ? "Connected Devices & Sync" : "Account & App Settings"}</h1>
-            <p className="sub">{activeTab === "overview" ? "Here’s how your glucose is looking today." : activeTab === "readings" ? "View and manage all recorded blood sugar values." : activeTab === "history" ? "Analyze historical patterns and time in range." : activeTab === "careplan" ? "Track your daily prescribed medication regimen." : activeTab === "messages" ? "Communicate securely with your doctor and care team." : activeTab === "devices" ? "Manage synced glucose meters and Health Connect integration." : "Manage your target ranges and personal details."}</p>
+            <h1>{activeTab === "overview" ? "Welcome back ✦" : activeTab === "readings" ? "My Readings Log" : activeTab === "history" ? "Glucose History & Trends" : activeTab === "careplan" ? "Care Plan & Medications" : activeTab === "messages" ? "Care Team Telehealth Messages" : activeTab === "devices" ? "Connected Devices & Sync" : "Account & App Settings"}</h1>
+            <p className="sub">{activeTab === "overview" ? "Here’s how your glucose is looking today." : activeTab === "readings" ? "View and manage all recorded blood sugar values." : activeTab === "history" ? "Analyze historical patterns and time in range." : activeTab === "careplan" ? "Track your daily prescribed medication regimen." : activeTab === "messages" ? "Communicate securely with your care provider." : activeTab === "devices" ? "Manage synced glucose meters and Health Connect integration." : "Manage your target ranges and personal details."}</p>
           </div>
           <div className="header-actions">
             <ThemeToggle />
@@ -367,20 +409,58 @@ export function Dashboard() {
         {activeTab === "messages" && (
           <section className="messages-tab" style={{ background: "#fff", border: "1px solid #e9efec", borderRadius: "17px", padding: "24px", minHeight: "450px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
-              <h2 style={{ fontSize: "18px", marginBottom: "16px" }}>Care Team Messaging</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "320px", overflowY: "auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h2 style={{ fontSize: "18px", margin: 0 }}>Care Team Telehealth Messages</h2>
+                <span style={{ fontSize: "12px", color: "#188e69", background: "#e6f7f0", padding: "4px 8px", borderRadius: "6px", fontWeight: "bold" }}>● Care Team Active</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "340px", overflowY: "auto", paddingRight: "4px" }}>
                 {messages.map(m => (
-                  <div key={m.id} style={{ alignSelf: m.senderRole === "PATIENT" ? "flex-end" : "flex-start", background: m.senderRole === "PATIENT" ? "#188e69" : "#f4f8f6", color: m.senderRole === "PATIENT" ? "#fff" : "#182521", padding: "12px 16px", borderRadius: "12px", maxWidth: "70%", fontSize: "14px" }}>
+                  <div key={m.id} style={{ alignSelf: m.senderRole === "PATIENT" ? "flex-end" : "flex-start", background: m.senderRole === "PATIENT" ? "#188e69" : "#f4f8f6", color: m.senderRole === "PATIENT" ? "#fff" : "#182521", padding: "14px 18px", borderRadius: "14px", maxWidth: "75%", fontSize: "14px" }}>
                     <p style={{ margin: 0 }}>{m.content}</p>
-                    <small style={{ display: "block", textAlign: "right", color: m.senderRole === "PATIENT" ? "#b7e3d4" : "#75817d", fontSize: "10px", marginTop: "4px" }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                    
+                    {/* Embedded Glucose Attachment */}
+                    {m.reading && (
+                      <div style={{ marginTop: "10px", padding: "10px 12px", background: "rgba(0,0,0,0.06)", borderRadius: "8px", borderLeft: "3px solid #24a77c" }}>
+                        <strong style={{ display: "block", fontSize: "13px" }}>📊 Attached Glucose Reading</strong>
+                        <span style={{ fontSize: "15px", fontWeight: "bold" }}>{m.reading.valueMgDl} mg/dL</span>
+                        <small style={{ display: "block", fontSize: "10px", opacity: 0.85 }}>{contextNames[m.reading.context]} · {new Date(m.reading.recordedAt).toLocaleString()}</small>
+                      </div>
+                    )}
+
+                    {/* Embedded Care Directive Action Card */}
+                    {m.attachmentJson && (
+                      <div style={{ marginTop: "10px", padding: "12px", background: "#fff", border: "1px solid #3b82f6", borderRadius: "10px", color: "#1e293b" }}>
+                        <span style={{ fontSize: "10px", fontWeight: "bold", background: "#dbeafe", color: "#1d4ed8", padding: "2px 6px", borderRadius: "4px" }}>CARE DIRECTIVE</span>
+                        <h4 style={{ margin: "6px 0 4px", fontSize: "14px" }}>Prescription & Care Plan Adjustment</h4>
+                        <p style={{ fontSize: "12px", color: "#475569", margin: "0 0 10px 0" }}>Your doctor issued a care regimen update.</p>
+                        <button onClick={() => handleAcceptDirective(m.attachmentJson!)} style={{ padding: "6px 12px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: "bold", cursor: "pointer" }}>Accept & Update Care Plan ✓</button>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px" }}>
+                      <small style={{ color: m.senderRole === "PATIENT" ? "#b7e3d4" : "#75817d", fontSize: "10px" }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                      {m.senderRole === "PATIENT" && (
+                        <small style={{ color: m.isRead ? "#6EE7B7" : "#b7e3d4", fontSize: "10px", fontWeight: "bold" }}>{m.isRead ? "✓✓ Read" : "✓ Sent"}</small>
+                      )}
+                    </div>
                   </div>
                 ))}
-                {!messages.length && <p style={{ color: "#888", padding: "2rem", textAlign: "center" }}>No messages yet. Send a message to your assigned care provider below!</p>}
+                {!messages.length && <p style={{ color: "#888", padding: "2rem", textAlign: "center" }}>No messages yet. Send a message or attach a reading below!</p>}
               </div>
             </div>
-            <form onSubmit={handleSendPatientMsg} style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
-              <input value={patientMsg} onChange={e => setPatientMsg(e.target.value)} placeholder="Send a message to your clinical care team..." style={{ flex: 1, padding: "12px 16px", borderRadius: "9px", border: "1px solid #dce5e0", outline: "none", fontSize: "14px" }} />
-              <button disabled={sendingMsg} className="submit" style={{ width: "auto", margin: 0, padding: "0 24px" }}>{sendingMsg ? "Sending..." : "Send"}</button>
+
+            <form onSubmit={handleSendPatientMsg} style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}>
+              {selectedReadingForAttach && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#e6f7f0", padding: "6px 12px", borderRadius: "8px", fontSize: "12px", color: "#117858" }}>
+                  <span>📎 Attached Reading: <strong>{readings.find(r => r.id === selectedReadingForAttach)?.value} mg/dL</strong></span>
+                  <button type="button" onClick={() => setSelectedReadingForAttach(null)} style={{ border: 0, background: "transparent", cursor: "pointer", color: "#dc2626", fontWeight: "bold" }}>×</button>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button type="button" onClick={() => setIsAttachOpen(true)} style={{ padding: "0 14px", borderRadius: "9px", border: "1px solid #dce5e0", background: "#f4f8f6", color: "#53635d", fontSize: "13px", fontWeight: "bold", cursor: "pointer" }}>📎 Attach Glucose</button>
+                <input value={patientMsg} onChange={e => setPatientMsg(e.target.value)} placeholder="Type a message to your clinical care team..." style={{ flex: 1, padding: "12px 16px", borderRadius: "9px", border: "1px solid #dce5e0", outline: "none", fontSize: "14px" }} />
+                <button disabled={sendingMsg} className="submit" style={{ width: "auto", margin: 0, padding: "0 24px" }}>{sendingMsg ? "Sending..." : "Send"}</button>
+              </div>
             </form>
           </section>
         )}
@@ -419,6 +499,29 @@ export function Dashboard() {
           </section>
         )}
       </section>
+
+      {/* Attach Reading Modal */}
+      {isAttachOpen && (
+        <div className="modal-backdrop">
+          <div className="modal" style={{ maxWidth: "420px" }}>
+            <button type="button" className="close" onClick={() => setIsAttachOpen(false)}>×</button>
+            <p className="eyebrow">TELEHEALTH ATTACHMENT</p>
+            <h2>Select Glucose Reading</h2>
+            <p style={{ color: "#78847f", fontSize: "13px", marginBottom: "16px" }}>Choose a reading entry to share with your care team in chat.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "250px", overflowY: "auto" }}>
+              {readings.slice(-6).reverse().map((r) => (
+                <div key={r.id} onClick={() => { setSelectedReadingForAttach(r.id); setIsAttachOpen(false); }} style={{ padding: "10px 14px", background: selectedReadingForAttach === r.id ? "#e6f7f0" : "#f8faf9", border: "1px solid #e9efec", borderRadius: "8px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <strong style={{ fontSize: "14px" }}>{r.value} mg/dL</strong>
+                    <small style={{ display: "block", color: "#78847f", fontSize: "11px" }}>{contextNames[r.context]}</small>
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#6b7280" }}>{new Date(r.recordedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {open && (
         <div className="modal-backdrop">

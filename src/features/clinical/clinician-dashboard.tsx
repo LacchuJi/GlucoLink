@@ -12,14 +12,24 @@ type ApiMessage = {
   senderId: string;
   senderRole: "PATIENT" | "DOCTOR";
   content: string;
+  isRead?: boolean;
+  readAt?: string;
   createdAt: string;
+  reading?: {
+    valueMgDl: number;
+    context: string;
+    recordedAt: string;
+  } | null;
+  attachmentJson?: string | null;
 };
+
+type PatientWithUnread = PatientSnapshot & { unreadCount?: number };
 
 export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void } = {}) {
   const [activeTab, setActiveTab] = useState<"overview" | "patients" | "alerts" | "messages" | "reports" | "settings">("overview");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "critical" | "attention">("all");
-  const [patients, setPatients] = useState<PatientSnapshot[]>([]);
+  const [patients, setPatients] = useState<PatientWithUnread[]>([]);
   const [alerts, setAlerts] = useState<ClinicalAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -35,6 +45,11 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
   const [chatMessage, setChatMessage] = useState("");
   const [messages, setMessages] = useState<ApiMessage[]>([]);
   const [sendingMsg, setSendingMsg] = useState(false);
+
+  // Directive Modal
+  const [isDirectiveOpen, setIsDirectiveOpen] = useState(false);
+  const [directiveMed, setDirectiveMed] = useState("Metformin");
+  const [directiveDose, setDirectiveDose] = useState("1000 mg");
 
   const loadData = () => {
     Promise.all([
@@ -106,26 +121,44 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
     }
   }
 
-  async function handleSendMessage(e: FormEvent) {
-    e.preventDefault();
-    if (!chatMessage.trim() || !selectedPatientId || sendingMsg) return;
+  async function handleSendMessage(e: FormEvent, customText?: string, attachmentPayload?: object) {
+    if (e) e.preventDefault();
+    const textToSend = customText || chatMessage;
+    if ((!textToSend.trim() && !attachmentPayload) || !selectedPatientId || sendingMsg) return;
     setSendingMsg(true);
     try {
+      const payload: { patientId: string; content: string; attachmentJson?: string } = {
+        patientId: selectedPatientId,
+        content: textToSend
+      };
+      if (attachmentPayload) {
+        payload.attachmentJson = JSON.stringify(attachmentPayload);
+      }
+
       const res = await fetch("/api/clinical/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ patientId: selectedPatientId, content: chatMessage })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.message) {
         setMessages((prev) => [...prev, data.message]);
         setChatMessage("");
+        setIsDirectiveOpen(false);
       }
     } catch (err) {
       console.error("Failed to send message:", err);
     } finally {
       setSendingMsg(false);
     }
+  }
+
+  function sendCareDirective() {
+    handleSendMessage(
+      null as unknown as FormEvent,
+      `Issued Care Directive: Adjust ${directiveMed} to ${directiveDose}.`,
+      { medicationName: directiveMed, newDosage: directiveDose, timing: "Prescribed with meals" }
+    );
   }
 
   if (loading) return <main className="clinical-shell"><div style={{padding:"2rem"}}>Loading clinical workspace...</div></main>;
@@ -136,7 +169,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
         <Link className="clinical-brand" href="/"><span>G</span> Gluco<b>Link</b></Link>
         <div className="clinic">
           <span className="doctor-avatar">DR</span>
-          <div><b>Care Provider</b><small>GlucoLink Demo Clinic</small></div>
+          <div><b>Care Provider</b><small>GlucoLink Care Clinic</small></div>
         </div>
         <nav>
           <a className={activeTab === "overview" ? "active" : ""} onClick={() => setActiveTab("overview")} style={{ cursor: "pointer" }}>▦ <span>Care overview</span></a>
@@ -159,7 +192,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
         <header className="clinical-header">
           <div>
             <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }).toUpperCase()}</p>
-            <h1>{activeTab === "overview" ? "Care overview" : activeTab === "patients" ? "Assigned Patients" : activeTab === "alerts" ? "Clinical Alerts Queue" : activeTab === "messages" ? "Care Communications" : activeTab === "reports" ? "RPM & Clinical Reports" : "Practice Settings"}</h1>
+            <h1>{activeTab === "overview" ? "Care overview" : activeTab === "patients" ? "Assigned Patients" : activeTab === "alerts" ? "Clinical Alerts Queue" : activeTab === "messages" ? "Care Communications & Telehealth" : activeTab === "reports" ? "RPM & Clinical Reports" : "Practice Settings"}</h1>
             <p>{activeTab === "overview" ? "Prioritized signals from your remote monitoring panel." : activeTab === "patients" ? "Manage and review assigned patients." : activeTab === "alerts" ? "Active signals requiring review or decision support." : activeTab === "messages" ? "Direct communication feed with assigned patients." : activeTab === "reports" ? "Generate monthly RPM compliance and clinical summary reports." : "Configure clinic alert thresholds and practice preferences."}</p>
           </div>
           <div className="doctor-actions">
@@ -175,7 +208,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
           <Stat value={patients.length.toString()} label="ACTIVE PATIENTS" detail="Total assigned" tone="blue" />
           <Stat value={critical.toString()} label="NEED URGENT REVIEW" detail="Requires attention today" tone="red" />
           <Stat value={attention.toString()} label="MONITORING GAPS" detail="May need check-in" tone="amber" />
-          <Stat value={messages.length.toString()} label="UNREAD MESSAGES" detail="Inbox feed" tone="purple" />
+          <Stat value={messages.length.toString()} label="TELEHEALTH FEED" detail="Inbox threads" tone="purple" />
         </section>
 
         {activeTab === "overview" && (
@@ -303,28 +336,66 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
         )}
 
         {activeTab === "messages" && (
-          <section className="messages-tab" style={{ background: "#111", padding: "1.5rem", borderRadius: "12px", border: "1px solid #333", display: "grid", gridTemplateColumns: "250px 1fr", gap: "1.5rem", minHeight: "450px" }}>
+          <section className="messages-tab" style={{ background: "#111", padding: "1.5rem", borderRadius: "12px", border: "1px solid #333", display: "grid", gridTemplateColumns: "260px 1fr", gap: "1.5rem", minHeight: "480px" }}>
             <div style={{ borderRight: "1px solid #222", paddingRight: "1rem" }}>
-              <h3 style={{ color: "#fff", fontSize: "14px", margin: "0 0 1rem 0" }}>Assigned Patients</h3>
+              <h3 style={{ color: "#fff", fontSize: "14px", margin: "0 0 1rem 0" }}>Assigned Patient Threads</h3>
               {patients.map(p => (
-                <div key={p.id} onClick={() => setSelectedPatientId(p.id)} style={{ padding: "10px", borderRadius: "8px", background: selectedPatientId === p.id ? "#222" : "transparent", cursor: "pointer", color: "#fff", marginBottom: "0.5rem", border: "1px solid " + (selectedPatientId === p.id ? "#333" : "transparent") }}>
-                  <strong style={{ display: "block", fontSize: "14px" }}>{p.name}</strong>
-                  <small style={{ color: "#888", fontSize: "12px" }}>ID: {p.id.slice(0, 8)}</small>
+                <div key={p.id} onClick={() => setSelectedPatientId(p.id)} style={{ padding: "10px", borderRadius: "8px", background: selectedPatientId === p.id ? "#222" : "transparent", cursor: "pointer", color: "#fff", marginBottom: "0.5rem", border: "1px solid " + (selectedPatientId === p.id ? "#333" : "transparent"), display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <strong style={{ display: "block", fontSize: "14px" }}>{p.name}</strong>
+                    <small style={{ color: "#888", fontSize: "12px" }}>ID: {p.id.slice(0, 8)}</small>
+                  </div>
+                  {Boolean(p.unreadCount) && (
+                    <span style={{ background: "#ef4444", color: "#fff", borderRadius: "99px", padding: "2px 8px", fontSize: "10px", fontWeight: "bold" }}>{p.unreadCount}</span>
+                  )}
                 </div>
               ))}
               {!patients.length && <p style={{ color: "#777", fontSize: "13px" }}>No assigned patients found.</p>}
             </div>
+
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem", overflowY: "auto", paddingRight: "0.5rem", maxHeight: "350px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem", overflowY: "auto", paddingRight: "0.5rem", maxHeight: "330px" }}>
                 {messages.map(m => (
-                  <div key={m.id} style={{ alignSelf: m.senderRole === "DOCTOR" ? "flex-end" : "flex-start", background: m.senderRole === "DOCTOR" ? "#1e3a8a" : "#222", color: "#fff", padding: "10px 14px", borderRadius: "10px", maxWidth: "70%", fontSize: "14px" }}>
+                  <div key={m.id} style={{ alignSelf: m.senderRole === "DOCTOR" ? "flex-end" : "flex-start", background: m.senderRole === "DOCTOR" ? "#1e3a8a" : "#222", color: "#fff", padding: "12px 16px", borderRadius: "12px", maxWidth: "75%", fontSize: "14px" }}>
                     <p style={{ margin: 0 }}>{m.content}</p>
-                    <small style={{ display: "block", textAlign: "right", color: "#aaa", fontSize: "10px", marginTop: "4px" }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                    
+                    {/* Embedded Glucose Reading */}
+                    {m.reading && (
+                      <div style={{ marginTop: "8px", padding: "8px 10px", background: "rgba(255,255,255,0.1)", borderRadius: "6px", borderLeft: "3px solid #60a5fa" }}>
+                        <span style={{ fontSize: "11px", color: "#93c5fd", fontWeight: "bold", display: "block" }}>📊 Patient Reading</span>
+                        <strong style={{ fontSize: "15px" }}>{m.reading.valueMgDl} mg/dL</strong>
+                        <small style={{ display: "block", fontSize: "10px", color: "#cbd5e1" }}>{m.reading.context} · {new Date(m.reading.recordedAt).toLocaleString()}</small>
+                      </div>
+                    )}
+
+                    {/* Embedded Care Directive Card */}
+                    {m.attachmentJson && (
+                      <div style={{ marginTop: "8px", padding: "10px", background: "#1e293b", border: "1px solid #3b82f6", borderRadius: "8px", color: "#f8fafc" }}>
+                        <span style={{ fontSize: "9px", fontWeight: "bold", background: "#3b82f6", color: "#fff", padding: "2px 5px", borderRadius: "4px" }}>PRESCRIPTION DIRECTIVE</span>
+                        <small style={{ display: "block", fontSize: "11px", marginTop: "4px", color: "#93c5fd" }}>Issued to Patient Care Plan</small>
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+                      <small style={{ color: "#aaa", fontSize: "10px" }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                      {m.senderRole === "DOCTOR" && (
+                        <small style={{ color: m.isRead ? "#60a5fa" : "#888", fontSize: "10px", fontWeight: "bold" }}>{m.isRead ? "✓✓ Read" : "✓ Sent"}</small>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {!messages.length && <p style={{ color: "#888", padding: "2rem", textAlign: "center" }}>No messages in this patient thread yet.</p>}
               </div>
-              <form onSubmit={handleSendMessage} style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+
+              {/* AI Quick Response Chips */}
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", margin: "10px 0 6px" }}>
+                <span style={{ fontSize: "10px", color: "#60a5fa", fontWeight: "bold", alignSelf: "center" }}>✦ AI CHIPS:</span>
+                <button type="button" onClick={() => setChatMessage("I reviewed your recent readings. Everything looks stable! Keep up your current routine.")} style={{ padding: "4px 8px", background: "#1e293b", color: "#93c5fd", border: "1px solid #334155", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}>"Everything looks stable!"</button>
+                <button type="button" onClick={() => setChatMessage("I noticed a post-meal spike. Did you take your prescribed dosage with dinner?")} style={{ padding: "4px 8px", background: "#1e293b", color: "#93c5fd", border: "1px solid #334155", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}>"Did you take your dosage?"</button>
+              </div>
+
+              <form onSubmit={e => handleSendMessage(e)} style={{ display: "flex", gap: "0.5rem" }}>
+                <button type="button" onClick={() => setIsDirectiveOpen(true)} style={{ padding: "0 12px", borderRadius: "8px", border: "1px solid #333", background: "#222", color: "#60a5fa", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>✚ Prescribe Directive</button>
                 <input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a secure message to patient..." style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid #333", background: "#222", color: "#fff", outline: "none", fontSize: "14px" }} />
                 <button disabled={sendingMsg || !selectedPatientId} style={{ padding: "10px 18px", background: "#4ade80", color: "#000", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>{sendingMsg ? "Sending..." : "Send"}</button>
               </form>
@@ -370,6 +441,27 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
           </section>
         )}
       </section>
+
+      {/* Prescribe Care Directive Modal */}
+      {isDirectiveOpen && (
+        <div className="modal-backdrop">
+          <div className="modal" style={{ maxWidth: "420px" }}>
+            <button type="button" className="close" onClick={() => setIsDirectiveOpen(false)}>×</button>
+            <p className="eyebrow">CLINICAL CARE DIRECTIVE</p>
+            <h2>Issue Prescription Update</h2>
+            <p style={{ color: "#aaa", fontSize: "13px", marginBottom: "16px" }}>Send an interactive care plan directive for patient acceptance.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <label style={{ fontSize: "13px", fontWeight: "bold" }}>Medication Name
+                <input value={directiveMed} onChange={e => setDirectiveMed(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #333", background: "#222", color: "#fff", marginTop: "4px" }} />
+              </label>
+              <label style={{ fontSize: "13px", fontWeight: "bold" }}>New Target Dosage
+                <input value={directiveDose} onChange={e => setDirectiveDose(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #333", background: "#222", color: "#fff", marginTop: "4px" }} />
+              </label>
+              <button onClick={sendCareDirective} className="submit" style={{ marginTop: "8px" }}>Send Care Directive Card</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isAddOpen && (
         <div className="modal-backdrop">
