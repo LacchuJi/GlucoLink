@@ -380,7 +380,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
 
         {activeTab === "messages" && (
           <section className="messages-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "16px", border: "1px solid var(--border-color)", display: "grid", gridTemplateColumns: "260px 1fr", gap: "1.5rem", minHeight: "550px" }}>
-            <div style={{ borderRight: "1px solid var(--border-color)", paddingRight: "1rem" }}>
+            <div className="threads-sidebar" style={{ borderRight: "1px solid var(--border-color)", paddingRight: "1rem", minWidth: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
                 <h3 style={{ color: "var(--text-heading)", fontSize: "14px", margin: 0 }}>Assigned Threads</h3>
                 <span style={{ fontSize: "10px", color: "var(--accent-primary)", background: "var(--accent-light)", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" }}>● 1.5s Sync</span>
@@ -399,10 +399,10 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
               {!patients.length && <p style={{ color: "var(--text-muted)", fontSize: "13px", padding: "10px 0" }}>No assigned patient threads.</p>}
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0, overflow: "hidden" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem", overflowY: "auto", paddingRight: "0.5rem", maxHeight: "400px" }}>
                 {messages.map(m => (
-                  <div key={m.id} style={{ alignSelf: m.senderRole === "DOCTOR" ? "flex-end" : "flex-start", background: m.senderRole === "DOCTOR" ? "var(--accent-primary)" : "var(--bg-subtle)", color: m.senderRole === "DOCTOR" ? "#fff" : "var(--text-main)", padding: "14px 18px", borderRadius: "14px", maxWidth: "75%", fontSize: "14px" }}>
+                  <div key={m.id} style={{ alignSelf: m.senderRole === "DOCTOR" ? "flex-end" : "flex-start", background: m.senderRole === "DOCTOR" ? "var(--accent-primary)" : "var(--bg-subtle)", color: m.senderRole === "DOCTOR" ? "#fff" : "var(--text-main)", padding: "14px 18px", borderRadius: "14px", maxWidth: "80%", fontSize: "14px" }}>
                     <p style={{ margin: 0 }}>{m.content}</p>
                     
                     {/* Embedded Glucose Reading */}
@@ -440,10 +440,10 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
                 <button type="button" onClick={() => setChatMessage("I noticed a post-meal spike. Did you take your prescribed dosage with dinner?")} style={{ padding: "6px 10px", background: "var(--bg-subtle)", color: "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}>"Did you take your dosage?"</button>
               </div>
 
-              <form onSubmit={e => handleSendMessage(e)} style={{ display: "flex", gap: "0.5rem" }}>
-                <button type="button" onClick={() => setIsDirectiveOpen(true)} style={{ padding: "0 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--accent-primary)", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>✚ Prescribe Directive</button>
-                <input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a secure message to patient..." style={{ flex: 1, padding: "12px 16px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--text-main)", outline: "none", fontSize: "14px" }} />
-                <button disabled={sendingMsg} className="submit" style={{ width: "auto", margin: 0, padding: "10px 20px" }}>{sendingMsg ? "Sending..." : "Send"}</button>
+              <form onSubmit={e => handleSendMessage(e)} style={{ display: "flex", gap: "0.5rem", width: "100%", minWidth: 0, alignItems: "center" }}>
+                <button type="button" onClick={() => setIsDirectiveOpen(true)} style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--accent-primary)", fontSize: "12px", fontWeight: "bold", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>✚ Prescribe Directive</button>
+                <input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a secure message to patient..." style={{ flex: 1, minWidth: 0, padding: "12px 16px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--text-main)", outline: "none", fontSize: "14px" }} />
+                <button disabled={sendingMsg} className="submit" style={{ width: "auto", margin: 0, padding: "10px 20px", whiteSpace: "nowrap", flexShrink: 0 }}>{sendingMsg ? "Sending..." : "Send"}</button>
               </form>
             </div>
           </section>
