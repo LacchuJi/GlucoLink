@@ -5,4 +5,5 @@
 | Explore project context | Completed | Confirmed timing bug and toast notification requirements |
 | Present design sections | Completed | User approved design |
 | Write design doc | Completed | Saved & committed `docs/plans/2026-07-27-realtime-messaging-notifications-design.md` |
-| Invoke writing-plans | In Progress | Transitioning to writing-plans skill |
+| Invoke writing-plans | Completed | Saved & committed `docs/plans/2026-07-27-realtime-messaging-notifications.md` |
+| Execute implementation plan | In Progress | Ready to execute via `.agent/workflows/execute-plan.md` |
