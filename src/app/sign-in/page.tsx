@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -121,10 +122,14 @@ export default function SignInPage() {
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <Link className="auth-brand" href="/">
-          <span>G</span> Gluco<b>Link</b>
-        </Link>
-        <p className="eyebrow">SECURE CARE PORTAL</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px" }}>
+          <Link className="auth-brand" href="/" style={{ marginBottom: 0 }}>
+            <span>G</span> Gluco<b>Link</b>
+          </Link>
+          <ThemeToggle />
+        </div>
+
+        <p className="eyebrow">SECURE HEALTH PLATFORM</p>
         <h1>{register ? "Create your account" : "Welcome back"}</h1>
         <p className="auth-copy">
           {register
@@ -205,7 +210,7 @@ export default function SignInPage() {
         </button>
 
         <div className="demo-box">
-          <p>⚡ QUICK DEMO LOGINS</p>
+          <p>⚡ INSTANT 1-CLICK DEMO LOGINS</p>
           <div className="demo-buttons">
             <button type="button" disabled={pending} className="demo-btn" onClick={() => handleDemoLogin("DOCTOR")}>
               🩺 Clinician Demo
@@ -216,7 +221,7 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <p className="auth-privacy">By continuing, you agree to the Terms and acknowledge the Privacy Notice.</p>
+        <p className="auth-privacy">By continuing, you agree to the Terms of Service and HIPAA Privacy Notice.</p>
       </section>
     </main>
   );
