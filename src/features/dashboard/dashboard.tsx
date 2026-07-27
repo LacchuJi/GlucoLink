@@ -4,8 +4,8 @@ import { FormEvent, useEffect, useMemo, useState, useRef } from "react";
 import { analytics, buildChartPoints, trend } from "@/features/glucose/analytics";
 import { type GlucoseReading, type MealContext } from "@/features/glucose/types";
 import { ClinicianDashboard } from "@/features/clinical/clinician-dashboard";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { ProfileMenu } from "@/components/profile-menu";
+import { AppSidebar } from "@/components/app-sidebar";
+import { AppHeader } from "@/components/app-header";
 import { NotificationToast } from "@/components/notification-toast";
 
 const contextNames: Record<MealContext, string> = {
@@ -36,7 +36,7 @@ export function Dashboard() {
   const [readings, setReadings] = useState<GlucoseReading[]>([]);
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"patient" | "clinical">("patient");
-  const [activeTab, setActiveTab] = useState<"overview" | "readings" | "history" | "careplan" | "messages" | "devices" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<string>("overview");
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState("");
   const [filterContext, setFilterContext] = useState<string>("ALL");
@@ -201,6 +201,16 @@ export function Dashboard() {
   if (loading) return <main className="loading-screen">Loading your secure health record…</main>;
   if (mode === "clinical") return <ClinicianDashboard onToggleMode={() => setMode("patient")} />;
 
+  const navItems = [
+    { id: "overview", label: "Overview", icon: "⌂" },
+    { id: "readings", label: "My readings", icon: "▣" },
+    { id: "history", label: "History & Trends", icon: "◴" },
+    { id: "careplan", label: "Care plan", icon: "♡" },
+    { id: "messages", label: "Messages", icon: "▤", badge: unreadCount },
+    { id: "devices", label: "Devices & Sync", icon: "◌" },
+    { id: "settings", label: "Settings", icon: "⚙" }
+  ];
+
   const filteredReadings = readings.filter(r => filterContext === "ALL" || r.context === filterContext);
 
   return (
@@ -215,39 +225,29 @@ export function Dashboard() {
         />
       )}
 
-      <aside className="sidebar">
-        <div className="brand"><span className="brand-mark">G</span><span>Gluco<span>Link</span></span></div>
-        <div className="workspace"><span className="avatar">SA</span><div><b>Sarah Adams</b><small>Patient workspace</small></div></div>
-        <nav>
-          <a className={activeTab === "overview" ? "active" : ""} onClick={() => setActiveTab("overview")} style={{ cursor: "pointer" }}>⌂ <span>Overview</span></a>
-          <a className={activeTab === "readings" ? "active" : ""} onClick={() => setActiveTab("readings")} style={{ cursor: "pointer" }}>▣ <span>My readings</span></a>
-          <a className={activeTab === "history" ? "active" : ""} onClick={() => setActiveTab("history")} style={{ cursor: "pointer" }}>◴ <span>History</span></a>
-          <a className={activeTab === "careplan" ? "active" : ""} onClick={() => setActiveTab("careplan")} style={{ cursor: "pointer" }}>♡ <span>Care plan</span></a>
-          <a className={activeTab === "messages" ? "active" : ""} onClick={() => setActiveTab("messages")} style={{ cursor: "pointer" }}>▤ <span>Messages</span>{unreadCount > 0 ? <i>{unreadCount}</i> : <b>{messages.length}</b>}</a>
-          <a className={activeTab === "devices" ? "active" : ""} onClick={() => setActiveTab("devices")} style={{ cursor: "pointer" }}>◌ <span>Devices</span></a>
-        </nav>
-        <div className="side-bottom">
-          <a className={activeTab === "settings" ? "active" : ""} onClick={() => setActiveTab("settings")} style={{ cursor: "pointer" }}>⚙ <span>Settings</span></a>
-          <button className="mode" onClick={() => setMode(mode === "patient" ? "clinical" : "patient")}>⇄ {mode === "patient" ? "Clinician preview" : "Patient preview"}</button>
-          <p>© 2026 GlucoLink<br />Privacy & security</p>
-        </div>
-      </aside>
+      <AppSidebar
+        role="PATIENT"
+        userName="Sarah Adams"
+        subtitle="Patient Workspace"
+        navItems={navItems}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onToggleMode={() => setMode("clinical")}
+      />
 
       <section className="content">
-        <header>
-          <div>
-            <p className="eyebrow">YOUR SECURE HEALTH RECORD</p>
-            <h1>{activeTab === "overview" ? "Welcome back ✦" : activeTab === "readings" ? "My Readings Log" : activeTab === "history" ? "Glucose History & Trends" : activeTab === "careplan" ? "Care Plan & Medications" : activeTab === "messages" ? "Care Team Telehealth Messages" : activeTab === "devices" ? "Connected Devices & Sync" : "Account & App Settings"}</h1>
-            <p className="sub">{activeTab === "overview" ? "Here’s how your glucose is looking today." : activeTab === "readings" ? "View and manage all recorded blood sugar values." : activeTab === "history" ? "Analyze historical patterns and time in range." : activeTab === "careplan" ? "Track your daily prescribed medication regimen." : activeTab === "messages" ? "Communicate securely with your care provider." : activeTab === "devices" ? "Manage synced glucose meters and Health Connect integration." : "Manage your target ranges and personal details."}</p>
-          </div>
-          <div className="header-actions">
-            <ThemeToggle />
-            <button className="icon-btn" onClick={() => setActiveTab("messages")} aria-label="Notifications" style={{ cursor: "pointer" }}>
-              ♧{unreadCount > 0 && <b style={{ background: "#ef4444" }}></b>}
-            </button>
-            <ProfileMenu defaultInitials="SA" />
-          </div>
-        </header>
+        <AppHeader
+          eyebrow="YOUR SECURE HEALTH RECORD"
+          title={activeTab === "overview" ? "Welcome back ✦" : activeTab === "readings" ? "My Readings Log" : activeTab === "history" ? "Glucose History & Trends" : activeTab === "careplan" ? "Care Plan & Medications" : activeTab === "messages" ? "Care Team Telehealth Messages" : activeTab === "devices" ? "Connected Devices & Sync" : "Account & App Settings"}
+          description={activeTab === "overview" ? "Here’s how your glucose is looking today." : activeTab === "readings" ? "View and manage all recorded blood sugar values." : activeTab === "history" ? "Analyze historical patterns and time in range." : activeTab === "careplan" ? "Track your daily prescribed medication regimen." : activeTab === "messages" ? "Communicate securely with your care provider." : activeTab === "devices" ? "Manage synced glucose meters and Health Connect integration." : "Manage your target ranges and personal details."}
+          unreadCount={unreadCount}
+          onNotificationClick={() => setActiveTab("messages")}
+          primaryActionLabel="＋ Log reading"
+          onPrimaryAction={() => { setOpen(true); setSaveError(""); }}
+          secondaryActionLabel="⇄ Switch to Clinician Panel"
+          onSecondaryAction={() => setMode("clinical")}
+          userInitials="SA"
+        />
 
         {activeTab === "overview" && (
           <>
@@ -300,12 +300,12 @@ export function Dashboard() {
                   <svg viewBox="0 0 600 170" preserveAspectRatio="none" aria-label="Glucose line chart">
                     <defs>
                       <linearGradient id="fill" x1="0" x2="0" y1="0" y2="1">
-                        <stop stopColor="#44c59a" stopOpacity="0.22" />
-                        <stop offset="1" stopColor="#44c59a" stopOpacity="0" />
+                        <stop stopColor="#10b981" stopOpacity="0.22" />
+                        <stop offset="1" stopColor="#10b981" stopOpacity="0" />
                       </linearGradient>
                     </defs>
                     <polygon points={`${buildChartPoints(readings)} 600,170 0,170`} fill="url(#fill)" />
-                    <polyline points={buildChartPoints(readings)} fill="none" stroke="#24a77c" strokeWidth="3" strokeLinejoin="round" />
+                    <polyline points={buildChartPoints(readings)} fill="none" stroke="#10b981" strokeWidth="3" strokeLinejoin="round" />
                   </svg>
                 ) : (
                   <p className="empty-chart">Your saved readings will appear here.</p>
@@ -356,7 +356,7 @@ export function Dashboard() {
                 <p>Complete historical log of all entries</p>
               </div>
               <div style={{ display: "flex", gap: "10px" }}>
-                <select value={filterContext} onChange={e => setFilterContext(e.target.value)} className="select" style={{ padding: "6px 12px" }}>
+                <select value={filterContext} onChange={e => setFilterContext(e.target.value)} className="select">
                   <option value="ALL">All Contexts</option>
                   <option value="FASTING">Fasting</option>
                   <option value="BEFORE_MEAL">Before Meal</option>
@@ -364,24 +364,24 @@ export function Dashboard() {
                   <option value="BEDTIME">Bedtime</option>
                   <option value="RANDOM">Random</option>
                 </select>
-                <button onClick={() => setOpen(true)} className="submit" style={{ padding: "6px 14px" }}>＋ Log Reading</button>
+                <button onClick={() => setOpen(true)} className="submit" style={{ width: "auto", margin: 0, padding: "8px 16px" }}>＋ Log Reading</button>
               </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {filteredReadings.slice().reverse().map((r) => (
-                <div className="reading-row" key={r.id} style={{ padding: "14px", background: "#f8faf9", borderRadius: "10px", border: "1px solid #e9efec" }}>
-                  <span className="reading-dot" style={{ background: r.value > 180 ? "#efb957" : r.value < 70 ? "#ef625e" : "#24a77c" }}></span>
+                <div className="reading-row" key={r.id} style={{ padding: "14px", background: "var(--bg-subtle)", borderRadius: "10px", border: "1px solid var(--border-color)" }}>
+                  <span className="reading-dot" style={{ background: r.value > 180 ? "#f59e0b" : r.value < 70 ? "#ef4444" : "#10b981" }}></span>
                   <div style={{ flex: 1 }}>
                     <b style={{ fontSize: "14px" }}>{contextNames[r.context]}</b>
-                    <small style={{ color: "#77847e" }}>{new Date(r.recordedAt).toLocaleString()} · {r.source === "DEVICE_IMPORT" ? "Device Sync" : "Manual Log"}</small>
+                    <small style={{ color: "var(--text-muted)" }}>{new Date(r.recordedAt).toLocaleString()} · {r.source === "DEVICE_IMPORT" ? "Device Sync" : "Manual Log"}</small>
                   </div>
                   <strong style={{ fontSize: "18px", color: r.value > 180 ? "#d97706" : r.value < 70 ? "#dc2626" : "#059669" }}>
-                    {r.value} <small style={{ fontSize: "12px", color: "#6b7280" }}>mg/dL</small>
+                    {r.value} <small style={{ fontSize: "12px", color: "var(--text-muted)" }}>mg/dL</small>
                   </strong>
                 </div>
               ))}
-              {!filteredReadings.length && <p style={{ color: "#88928e", padding: "30px", textAlign: "center" }}>No readings found matching filter.</p>}
+              {!filteredReadings.length && <p style={{ color: "var(--text-muted)", padding: "30px", textAlign: "center" }}>No readings found matching filter.</p>}
             </div>
           </section>
         )}
@@ -390,13 +390,13 @@ export function Dashboard() {
           <section className="history-tab">
             <article className="chart-card" style={{ padding: "24px", marginBottom: "20px" }}>
               <h2>7-Day Glucose Trend Analysis</h2>
-              <p style={{ color: "#78847f", fontSize: "13px", marginBottom: "16px" }}>Detailed breakdown of glycemic stability and daily averages</p>
+              <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>Detailed breakdown of glycemic stability and daily averages</p>
               <div className="chart" style={{ height: "200px" }}>
                 <div className="target-zone"></div>
                 {readings.length ? (
                   <svg viewBox="0 0 600 170" preserveAspectRatio="none" aria-label="Glucose line chart">
                     <polygon points={`${buildChartPoints(readings)} 600,170 0,170`} fill="url(#fill)" />
-                    <polyline points={buildChartPoints(readings)} fill="none" stroke="#24a77c" strokeWidth="3" />
+                    <polyline points={buildChartPoints(readings)} fill="none" stroke="#10b981" strokeWidth="3" />
                   </svg>
                 ) : (
                   <p className="empty-chart">No readings logged yet.</p>
@@ -417,15 +417,15 @@ export function Dashboard() {
           <section className="careplan-tab" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             <article className="care-card" style={{ padding: "24px" }}>
               <h2 style={{ fontSize: "20px", marginBottom: "10px" }}>Prescribed Medications & Regimen</h2>
-              <p style={{ color: "#78847f", fontSize: "14px", marginBottom: "20px" }}>Your care provider’s active prescription plan for glucose management.</p>
+              <p style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "20px" }}>Your care provider’s active prescription plan for glucose management.</p>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {meds.map(m => (
-                  <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: "#fff", border: "1px solid #e9efec", borderRadius: "12px" }}>
+                  <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "12px" }}>
                     <div>
-                      <strong style={{ fontSize: "16px", color: "#16251f" }}>{m.name} ({m.dosage})</strong>
-                      <small style={{ display: "block", color: "#78847f", marginTop: "3px" }}>{m.timing}</small>
+                      <strong style={{ fontSize: "16px", color: "var(--text-heading)" }}>{m.name} ({m.dosage})</strong>
+                      <small style={{ display: "block", color: "var(--text-muted)", marginTop: "3px" }}>{m.timing}</small>
                     </div>
-                    <button onClick={() => setMeds(meds.map(item => item.id === m.id ? { ...item, taken: !item.taken } : item))} style={{ padding: "8px 16px", borderRadius: "8px", background: m.taken ? "#e6f7f0" : "#188e69", color: m.taken ? "#117858" : "#fff", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "13px" }}>
+                    <button onClick={() => setMeds(meds.map(item => item.id === m.id ? { ...item, taken: !item.taken } : item))} style={{ padding: "8px 16px", borderRadius: "8px", background: m.taken ? "var(--accent-light)" : "var(--accent-primary)", color: m.taken ? "var(--accent-primary)" : "#fff", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "13px" }}>
                       {m.taken ? "Completed ✓" : "Mark Taken"}
                     </button>
                   </div>
@@ -436,20 +436,20 @@ export function Dashboard() {
         )}
 
         {activeTab === "messages" && (
-          <section className="messages-tab" style={{ background: "#fff", border: "1px solid #e9efec", borderRadius: "17px", padding: "24px", minHeight: "450px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <section className="messages-tab" style={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "17px", padding: "24px", minHeight: "450px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h2 style={{ fontSize: "18px", margin: 0 }}>Care Team Telehealth Messages</h2>
-                <span style={{ fontSize: "12px", color: "#188e69", background: "#e6f7f0", padding: "4px 8px", borderRadius: "6px", fontWeight: "bold" }}>● Realtime Fast Sync (1.5s)</span>
+                <h2 style={{ fontSize: "18px", margin: 0, color: "var(--text-heading)" }}>Care Team Telehealth Messages</h2>
+                <span style={{ fontSize: "12px", color: "var(--accent-primary)", background: "var(--accent-light)", padding: "4px 10px", borderRadius: "6px", fontWeight: "bold" }}>● Realtime Fast Sync (1.5s)</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "340px", overflowY: "auto", paddingRight: "4px" }}>
                 {messages.map(m => (
-                  <div key={m.id} style={{ alignSelf: m.senderRole === "PATIENT" ? "flex-end" : "flex-start", background: m.senderRole === "PATIENT" ? "#188e69" : "#f4f8f6", color: m.senderRole === "PATIENT" ? "#fff" : "#182521", padding: "14px 18px", borderRadius: "14px", maxWidth: "75%", fontSize: "14px" }}>
+                  <div key={m.id} style={{ alignSelf: m.senderRole === "PATIENT" ? "flex-end" : "flex-start", background: m.senderRole === "PATIENT" ? "var(--accent-primary)" : "var(--bg-subtle)", color: m.senderRole === "PATIENT" ? "#fff" : "var(--text-main)", padding: "14px 18px", borderRadius: "14px", maxWidth: "75%", fontSize: "14px" }}>
                     <p style={{ margin: 0 }}>{m.content}</p>
                     
                     {/* Embedded Glucose Attachment */}
                     {m.reading && (
-                      <div style={{ marginTop: "10px", padding: "10px 12px", background: "rgba(0,0,0,0.06)", borderRadius: "8px", borderLeft: "3px solid #24a77c" }}>
+                      <div style={{ marginTop: "10px", padding: "10px 12px", background: "rgba(0,0,0,0.06)", borderRadius: "8px", borderLeft: "3px solid #10b981" }}>
                         <strong style={{ display: "block", fontSize: "13px" }}>📊 Attached Glucose Reading</strong>
                         <span style={{ fontSize: "15px", fontWeight: "bold" }}>{m.reading.valueMgDl} mg/dL</span>
                         <small style={{ display: "block", fontSize: "10px", opacity: 0.85 }}>{contextNames[m.reading.context]} · {new Date(m.reading.recordedAt).toLocaleString()}</small>
@@ -458,36 +458,36 @@ export function Dashboard() {
 
                     {/* Embedded Care Directive Action Card */}
                     {m.attachmentJson && (
-                      <div style={{ marginTop: "10px", padding: "12px", background: "#fff", border: "1px solid #3b82f6", borderRadius: "10px", color: "#1e293b" }}>
+                      <div style={{ marginTop: "10px", padding: "12px", background: "var(--bg-card)", border: "1px solid #3b82f6", borderRadius: "10px", color: "var(--text-main)" }}>
                         <span style={{ fontSize: "10px", fontWeight: "bold", background: "#dbeafe", color: "#1d4ed8", padding: "2px 6px", borderRadius: "4px" }}>CARE DIRECTIVE</span>
-                        <h4 style={{ margin: "6px 0 4px", fontSize: "14px" }}>Prescription & Care Plan Adjustment</h4>
-                        <p style={{ fontSize: "12px", color: "#475569", margin: "0 0 10px 0" }}>Your doctor issued a care regimen update.</p>
+                        <h4 style={{ margin: "6px 0 4px", fontSize: "14px", color: "var(--text-heading)" }}>Prescription & Care Plan Adjustment</h4>
+                        <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "0 0 10px 0" }}>Your doctor issued a care regimen update.</p>
                         <button onClick={() => handleAcceptDirective(m.attachmentJson!)} style={{ padding: "6px 12px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: "bold", cursor: "pointer" }}>Accept & Update Care Plan ✓</button>
                       </div>
                     )}
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px" }}>
-                      <small style={{ color: m.senderRole === "PATIENT" ? "#b7e3d4" : "#75817d", fontSize: "10px" }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                      <small style={{ color: m.senderRole === "PATIENT" ? "rgba(255,255,255,0.8)" : "var(--text-muted)", fontSize: "10px" }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
                       {m.senderRole === "PATIENT" && (
-                        <small style={{ color: m.isRead ? "#6EE7B7" : "#b7e3d4", fontSize: "10px", fontWeight: "bold" }}>{m.isRead ? "✓✓ Read" : "✓ Sent"}</small>
+                        <small style={{ color: m.isRead ? "#a7f3d0" : "#d1fae5", fontSize: "10px", fontWeight: "bold" }}>{m.isRead ? "✓✓ Read" : "✓ Sent"}</small>
                       )}
                     </div>
                   </div>
                 ))}
-                {!messages.length && <p style={{ color: "#888", padding: "2rem", textAlign: "center" }}>No messages yet. Send a message or attach a reading below!</p>}
+                {!messages.length && <p style={{ color: "var(--text-muted)", padding: "2rem", textAlign: "center" }}>No messages yet. Send a message or attach a reading below!</p>}
               </div>
             </div>
 
             <form onSubmit={handleSendPatientMsg} style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}>
               {selectedReadingForAttach && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#e6f7f0", padding: "6px 12px", borderRadius: "8px", fontSize: "12px", color: "#117858" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--accent-light)", padding: "6px 12px", borderRadius: "8px", fontSize: "12px", color: "var(--accent-primary)" }}>
                   <span>📎 Attached Reading: <strong>{readings.find(r => r.id === selectedReadingForAttach)?.value} mg/dL</strong></span>
                   <button type="button" onClick={() => setSelectedReadingForAttach(null)} style={{ border: 0, background: "transparent", cursor: "pointer", color: "#dc2626", fontWeight: "bold" }}>×</button>
                 </div>
               )}
               <div style={{ display: "flex", gap: "10px" }}>
-                <button type="button" onClick={() => setIsAttachOpen(true)} style={{ padding: "0 14px", borderRadius: "9px", border: "1px solid #dce5e0", background: "#f4f8f6", color: "#53635d", fontSize: "13px", fontWeight: "bold", cursor: "pointer" }}>📎 Attach Glucose</button>
-                <input value={patientMsg} onChange={e => setPatientMsg(e.target.value)} placeholder="Type a message to your clinical care team..." style={{ flex: 1, padding: "12px 16px", borderRadius: "9px", border: "1px solid #dce5e0", outline: "none", fontSize: "14px" }} />
+                <button type="button" onClick={() => setIsAttachOpen(true)} style={{ padding: "0 14px", borderRadius: "9px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--text-main)", fontSize: "13px", fontWeight: "bold", cursor: "pointer" }}>📎 Attach Glucose</button>
+                <input value={patientMsg} onChange={e => setPatientMsg(e.target.value)} placeholder="Type a message to your clinical care team..." style={{ flex: 1, padding: "12px 16px", borderRadius: "9px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--text-main)", outline: "none", fontSize: "14px" }} />
                 <button disabled={sendingMsg} className="submit" style={{ width: "auto", margin: 0, padding: "0 24px" }}>{sendingMsg ? "Sending..." : "Send"}</button>
               </div>
             </form>
@@ -495,33 +495,33 @@ export function Dashboard() {
         )}
 
         {activeTab === "devices" && (
-          <section className="devices-tab" style={{ background: "#fff", border: "1px solid #e9efec", borderRadius: "17px", padding: "24px" }}>
-            <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>Connected Devices & Integrations</h2>
-            <p style={{ color: "#78847f", fontSize: "14px", marginBottom: "20px" }}>Automatically import blood sugar readings from supported glucometers.</p>
+          <section className="devices-tab" style={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "17px", padding: "24px" }}>
+            <h2 style={{ fontSize: "18px", marginBottom: "8px", color: "var(--text-heading)" }}>Connected Devices & Integrations</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "20px" }}>Automatically import blood sugar readings from supported glucometers.</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              <div style={{ border: "1px solid #e9efec", borderRadius: "12px", padding: "18px", background: "#f8faf9" }}>
-                <strong style={{ fontSize: "15px", display: "block" }}>Android Health Connect</strong>
-                <small style={{ color: "#78847f", display: "block", marginTop: "4px" }}>Sync readings automatically from Google Health Connect.</small>
-                <button onClick={() => alert("Health Connect sync initiated.")} style={{ marginTop: "12px", padding: "8px 14px", background: "#188e69", color: "#fff", border: "none", borderRadius: "7px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>Connect Sync</button>
+              <div style={{ border: "1px solid var(--border-color)", borderRadius: "12px", padding: "18px", background: "var(--bg-subtle)" }}>
+                <strong style={{ fontSize: "15px", display: "block", color: "var(--text-heading)" }}>Android Health Connect</strong>
+                <small style={{ color: "var(--text-muted)", display: "block", marginTop: "4px" }}>Sync readings automatically from Google Health Connect.</small>
+                <button onClick={() => alert("Health Connect sync initiated.")} style={{ marginTop: "12px", padding: "8px 14px", background: "var(--accent-primary)", color: "#fff", border: "none", borderRadius: "7px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>Connect Sync</button>
               </div>
-              <div style={{ border: "1px solid #e9efec", borderRadius: "12px", padding: "18px", background: "#f8faf9" }}>
-                <strong style={{ fontSize: "15px", display: "block" }}>Manual & OCR Import</strong>
-                <small style={{ color: "#78847f", display: "block", marginTop: "4px" }}>Snap a photo of your meter screen to auto-read glucose value.</small>
-                <button onClick={() => alert("OCR scanner opening...")} style={{ marginTop: "12px", padding: "8px 14px", background: "#f4f8f6", color: "#182521", border: "1px solid #dce5e0", borderRadius: "7px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>Scan Meter Screen</button>
+              <div style={{ border: "1px solid var(--border-color)", borderRadius: "12px", padding: "18px", background: "var(--bg-subtle)" }}>
+                <strong style={{ fontSize: "15px", display: "block", color: "var(--text-heading)" }}>Manual & OCR Import</strong>
+                <small style={{ color: "var(--text-muted)", display: "block", marginTop: "4px" }}>Snap a photo of your meter screen to auto-read glucose value.</small>
+                <button onClick={() => alert("OCR scanner opening...")} style={{ marginTop: "12px", padding: "8px 14px", background: "var(--bg-card)", color: "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "7px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>Scan Meter Screen</button>
               </div>
             </div>
           </section>
         )}
 
         {activeTab === "settings" && (
-          <section className="settings-tab" style={{ background: "#fff", border: "1px solid #e9efec", borderRadius: "17px", padding: "24px" }}>
-            <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>Patient Profile & Settings</h2>
+          <section className="settings-tab" style={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "17px", padding: "24px" }}>
+            <h2 style={{ fontSize: "18px", marginBottom: "8px", color: "var(--text-heading)" }}>Patient Profile & Settings</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "450px" }}>
-              <label style={{ fontSize: "13px", fontWeight: "600", color: "#182521" }}>Target Low Range (mg/dL)
-                <input type="number" defaultValue="70" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #dce5e0", marginTop: "6px" }} />
+              <label style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-main)" }}>Target Low Range (mg/dL)
+                <input type="number" defaultValue="70" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)", marginTop: "6px", background: "var(--bg-subtle)", color: "var(--text-main)" }} />
               </label>
-              <label style={{ fontSize: "13px", fontWeight: "600", color: "#182521" }}>Target High Range (mg/dL)
-                <input type="number" defaultValue="180" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #dce5e0", marginTop: "6px" }} />
+              <label style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-main)" }}>Target High Range (mg/dL)
+                <input type="number" defaultValue="180" style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)", marginTop: "6px", background: "var(--bg-subtle)", color: "var(--text-main)" }} />
               </label>
               <button onClick={() => alert("Settings saved.")} className="submit" style={{ width: "fit-content", padding: "10px 20px" }}>Save Preferences</button>
             </div>
@@ -536,15 +536,15 @@ export function Dashboard() {
             <button type="button" className="close" onClick={() => setIsAttachOpen(false)}>×</button>
             <p className="eyebrow">TELEHEALTH ATTACHMENT</p>
             <h2>Select Glucose Reading</h2>
-            <p style={{ color: "#78847f", fontSize: "13px", marginBottom: "16px" }}>Choose a reading entry to share with your care team in chat.</p>
+            <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>Choose a reading entry to share with your care team in chat.</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "250px", overflowY: "auto" }}>
               {readings.slice(-6).reverse().map((r) => (
-                <div key={r.id} onClick={() => { setSelectedReadingForAttach(r.id); setIsAttachOpen(false); }} style={{ padding: "10px 14px", background: selectedReadingForAttach === r.id ? "#e6f7f0" : "#f8faf9", border: "1px solid #e9efec", borderRadius: "8px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div key={r.id} onClick={() => { setSelectedReadingForAttach(r.id); setIsAttachOpen(false); }} style={{ padding: "10px 14px", background: selectedReadingForAttach === r.id ? "var(--accent-light)" : "var(--bg-subtle)", border: "1px solid var(--border-color)", borderRadius: "8px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <strong style={{ fontSize: "14px" }}>{r.value} mg/dL</strong>
-                    <small style={{ display: "block", color: "#78847f", fontSize: "11px" }}>{contextNames[r.context]}</small>
+                    <strong style={{ fontSize: "14px", color: "var(--text-heading)" }}>{r.value} mg/dL</strong>
+                    <small style={{ display: "block", color: "var(--text-muted)", fontSize: "11px" }}>{contextNames[r.context]}</small>
                   </div>
-                  <span style={{ fontSize: "11px", color: "#6b7280" }}>{new Date(r.recordedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{new Date(r.recordedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
               ))}
             </div>
