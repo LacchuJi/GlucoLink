@@ -1,8 +1,7 @@
 | Task | Status | Details |
 | --- | --- | --- |
-| Prescription Directives Diagnosis | Completed | Found Doctor directives sent in preview/demo mode were assigned to a different patient ID than the logged in patient's profile |
-| Load brainstorming skill | Completed | Initialized brainstorming for Prescription Directives Visibility & Persistence Fix |
-| Write design doc | Completed | Saved & committed `docs/plans/2026-07-27-prescription-directives-visibility-fix-design.md` |
-| Invoke writing-plans | Completed | Saved & committed `docs/plans/2026-07-27-prescription-directives-visibility-fix.md` |
-| Task 1: Auto-Assign Patient & Sync Messages | Completed | Auto-assigned active patient profile to clinician panel and mirrored directives to user patient thread |
-| Task 2: Verification & Tests | Completed | Typecheck passed 0 errors & Vitest unit tests 100% passed |
+| Responsive Telehealth Chat Diagnosis | Completed | Found `messages-tab` grid lacked media queries & flex items lacked `minWidth: 0` / `whiteSpace: nowrap`, causing form inputs & buttons to overflow on window shrink |
+| Load brainstorming skill | Completed | Initialized brainstorming for Clinician Telehealth Chat Responsive Layout Fix |
+| Write design doc | Completed | Saved & committed `docs/plans/2026-07-27-responsive-chatbox-fix-design.md` |
+| Invoke writing-plans | Completed | Saved & committed `docs/plans/2026-07-27-responsive-chatbox-fix.md` |
+| Execute implementation plan | In Progress | Ready to execute via `.agent/workflows/execute-plan.md` |
