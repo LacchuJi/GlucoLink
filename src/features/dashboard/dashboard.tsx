@@ -5,6 +5,7 @@ import { analytics, buildChartPoints, trend } from "@/features/glucose/analytics
 import { type GlucoseReading, type MealContext } from "@/features/glucose/types";
 import { ClinicianDashboard } from "@/features/clinical/clinician-dashboard";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ProfileMenu } from "@/components/profile-menu";
 
 const contextNames: Record<MealContext, string> = {
   FASTING: "Fasting",
@@ -173,7 +174,7 @@ export function Dashboard() {
           <div className="header-actions">
             <ThemeToggle />
             <button className="icon-btn" aria-label="Notifications">♧<b></b></button>
-            <button className="profile">ME</button>
+            <ProfileMenu defaultInitials="SA" />
           </div>
         </header>
 

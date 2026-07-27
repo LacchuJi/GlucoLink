@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, FormEvent } from "react";
 import { riskBand, riskScore, type PatientSnapshot, type ClinicalAlert } from "./triage";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ProfileMenu } from "@/components/profile-menu";
 
 type ApiMessage = {
   id: string;
@@ -166,7 +167,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
             <button className="outline-button" onClick={onToggleMode ?? (() => window.location.href = "/")} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>⇄ Switch to Patient View</button>
             <button className="outline-button" onClick={() => setActiveTab("reports")}>↓ Export report</button>
             <button className="add-patient" onClick={() => setIsAddOpen(true)}>＋ Add patient</button>
-            <span className="doctor-avatar">DR</span>
+            <ProfileMenu defaultInitials="DR" />
           </div>
         </header>
 
