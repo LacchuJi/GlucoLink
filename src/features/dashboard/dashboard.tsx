@@ -152,8 +152,9 @@ export function Dashboard() {
     if ((!patientMsg.trim() && !selectedReadingForAttach) || sendingMsg) return;
     setSendingMsg(true);
     try {
-      const payload: { content: string; readingId?: string } = {
-        content: patientMsg.trim() || "Attached blood glucose reading for review."
+      const payload: { content: string; readingId?: string; senderRole: "PATIENT" } = {
+        content: patientMsg.trim() || "Attached blood glucose reading for review.",
+        senderRole: "PATIENT"
       };
       if (selectedReadingForAttach) payload.readingId = selectedReadingForAttach;
 

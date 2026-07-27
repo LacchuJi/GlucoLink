@@ -1,4 +1,4 @@
-import { audit, requireDoctor, requireUser, requirePatient } from "@/lib/access";
+import { audit, requireUser } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -6,7 +6,8 @@ const postSchema = z.object({
   patientId: z.string().optional(),
   content: z.string().min(1, "Message content cannot be empty"),
   readingId: z.string().optional(),
-  attachmentJson: z.string().optional()
+  attachmentJson: z.string().optional(),
+  senderRole: z.enum(["PATIENT", "DOCTOR"]).optional()
 });
 
 export async function GET(request: Request) {
@@ -50,7 +51,6 @@ export async function GET(request: Request) {
       if (queryPatientId) {
         targetPatientId = queryPatientId;
       } else if (assignments.length > 0) {
-        // Fallback for Doctor in Patient Preview Mode or default thread
         targetPatientId = assignments[0].patient.id;
       }
     } else {
@@ -125,14 +125,16 @@ export async function POST(request: Request) {
       return Response.json({ error: "Invalid message data" }, { status: 400 });
     }
 
-    const { content, patientId: bodyPatientId, readingId, attachmentJson } = parsed.data;
+    const { content, patientId: bodyPatientId, readingId, attachmentJson, senderRole: bodySenderRole } = parsed.data;
     let targetPatientId: string;
     let targetDoctorId: string;
-    let senderRole: "PATIENT" | "DOCTOR";
+    let senderRole: "PATIENT" | "DOCTOR" = bodySenderRole || (user.role === "DOCTOR" ? "DOCTOR" : "PATIENT");
 
-    if (user.role === "DOCTOR") {
-      senderRole = "DOCTOR";
-      const doctor = await prisma.doctor.findUnique({ where: { userId: user.id } });
+    if (senderRole === "DOCTOR") {
+      let doctor = await prisma.doctor.findUnique({ where: { userId: user.id } });
+      if (!doctor) {
+        doctor = await prisma.doctor.findFirst();
+      }
       if (!doctor) return Response.json({ error: "Doctor profile missing" }, { status: 403 });
       
       let targetPatient: { id: string } | null = null;
@@ -155,7 +157,6 @@ export async function POST(request: Request) {
         update: {}
       });
     } else {
-      senderRole = "PATIENT";
       let patient = await prisma.patient.findUnique({ where: { userId: user.id } });
       if (!patient) {
         patient = await prisma.patient.create({ data: { userId: user.id } });

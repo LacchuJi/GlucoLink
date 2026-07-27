@@ -159,9 +159,10 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
     if ((!textToSend.trim() && !attachmentPayload) || sendingMsg) return;
     setSendingMsg(true);
     try {
-      const payload: { patientId?: string; content: string; attachmentJson?: string } = {
+      const payload: { patientId?: string; content: string; attachmentJson?: string; senderRole: "DOCTOR" } = {
         patientId: selectedPatientId || undefined,
-        content: textToSend
+        content: textToSend,
+        senderRole: "DOCTOR"
       };
       if (attachmentPayload) {
         payload.attachmentJson = JSON.stringify(attachmentPayload);
