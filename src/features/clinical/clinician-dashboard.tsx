@@ -241,78 +241,83 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
           userInitials="DR"
         />
 
-        {activeTab !== "messages" && (
-          <section className="clinical-stats">
-            <Stat value={patients.length.toString()} label="ACTIVE PATIENTS" detail="Total assigned" tone="blue" />
-            <Stat value={critical.toString()} label="NEED URGENT REVIEW" detail="Requires attention today" tone="red" />
-            <Stat value={attention.toString()} label="MONITORING GAPS" detail="May need check-in" tone="amber" />
-            <Stat value={messages.length.toString()} label="TELEHEALTH FEED" detail="Inbox threads" tone="purple" />
-          </section>
-        )}
-
         {activeTab === "overview" && (
-          <section className="clinical-main">
-            <div>
-              <div className="title-row">
-                <div><h2>Priority queue</h2><p>Clinical decision support · Review and act on each item</p></div>
-                <button className="link-button" onClick={() => setActiveTab("settings")}>Configure rules →</button>
-              </div>
-              <div className="alerts">
-                {alerts.map(a => {
-                  const patient = patients.find(p => p.id === a.patientId);
-                  if (!patient) return null;
-                  return (
-                    <article className={`alert ${a.severity}`} key={a.id}>
-                      <div className="alert-severity">{a.severity === "critical" ? "!" : "↗"}</div>
-                      <div className="patient-initials">{patient.initials}</div>
-                      <div className="alert-copy">
-                        <div><b>{a.title}</b><span>{patient.name} · {patient.age || 50} years</span></div>
-                        <p>{a.explanation}</p>
-                      </div>
-                      <button className="alert-action" onClick={() => window.location.href = `/clinician/patient/${patient.id}`}>{a.action} →</button>
-                      <button className="dismiss" onClick={() => resolveAlert(a.id)} aria-label="Mark reviewed">×</button>
-                    </article>
-                  );
-                })}
-                {!alerts.length && <div className="empty">All priority signals have been reviewed.</div>}
-              </div>
-              <article className="ai-card">
-                <div>
-                  <span className="ai-icon">✦</span>
-                  <p className="eyebrow">CLINICAL REVIEW ASSISTANT</p>
-                  <h3>Generate a review brief</h3>
-                  <p>Creates a draft based on recorded readings and care activity. You remain responsible for review and sign-off.</p>
-                </div>
-                <button onClick={() => alert("Summary drafting is available in the individual Patient Profile view.")}>Generate draft summary</button>
-              </article>
-            </div>
+          <>
+            <section className="clinical-stats">
+              <Stat value={patients.length.toString()} label="ACTIVE PATIENTS" detail="Total assigned" tone="blue" />
+              <Stat value={critical.toString()} label="NEED URGENT REVIEW" detail="Requires attention today" tone="red" />
+              <Stat value={attention.toString()} label="MONITORING GAPS" detail="May need check-in" tone="amber" />
+              <Stat value={messages.length.toString()} label="TELEHEALTH FEED" detail="Inbox threads" tone="purple" />
+            </section>
 
-            <aside className="patient-panel">
-              <div className="patient-panel-head">
-                <div><h2>Patients</h2><span>{visible.length} shown</span></div>
-                <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search patients..." aria-label="Search patients" />
+            <section className="clinical-main" style={{ marginTop: "24px" }}>
+              <div>
+                <div className="title-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <div>
+                    <h2 style={{ fontSize: "18px", color: "var(--text-heading)", margin: 0 }}>Priority queue</h2>
+                    <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "4px 0 0" }}>Clinical decision support · Review and act on each item</p>
+                  </div>
+                  <button className="btn-link" onClick={() => setActiveTab("settings")}>Configure rules →</button>
+                </div>
+
+                <div className="alerts">
+                  {alerts.map(a => {
+                    const patient = patients.find(p => p.id === a.patientId);
+                    if (!patient) return null;
+                    return (
+                      <article className={`alert ${a.severity}`} key={a.id}>
+                        <div className="alert-severity">{a.severity === "critical" ? "!" : "↗"}</div>
+                        <div className="patient-initials">{patient.initials}</div>
+                        <div className="alert-copy">
+                          <div><b>{a.title}</b><span>{patient.name} · {patient.age || 50} years</span></div>
+                          <p>{a.explanation}</p>
+                        </div>
+                        <button className="alert-action" onClick={() => window.location.href = `/clinician/patient/${patient.id}`}>{a.action} →</button>
+                        <button className="dismiss" onClick={() => resolveAlert(a.id)} aria-label="Mark reviewed">×</button>
+                      </article>
+                    );
+                  })}
+                  {!alerts.length && <div className="empty">All priority signals have been reviewed.</div>}
+                </div>
+
+                <article className="ai-card" style={{ marginTop: "24px" }}>
+                  <div>
+                    <span className="ai-icon">✦</span>
+                    <p className="eyebrow" style={{ color: "#a5b4fc" }}>CLINICAL REVIEW ASSISTANT</p>
+                    <h3>Generate a review brief</h3>
+                    <p style={{ color: "#cbd5e1" }}>Creates a draft based on recorded readings and care activity. You remain responsible for review and sign-off.</p>
+                  </div>
+                  <button onClick={() => alert("Summary drafting is available in the individual Patient Profile view.")}>Generate draft summary</button>
+                </article>
               </div>
-              <div className="filters">
-                <button className={filter === "all" ? "selected" : ""} onClick={() => setFilter("all")}>All</button>
-                <button className={filter === "critical" ? "selected critical" : ""} onClick={() => setFilter("critical")}>Urgent</button>
-                <button className={filter === "attention" ? "selected attention" : ""} onClick={() => setFilter("attention")}>Review</button>
-              </div>
-              <div className="patient-list">
-                {visible.map(p => <Link key={p.id} href={`/clinician/patient/${p.id}`} style={{ textDecoration: "none" }}><PatientRow patient={p} /></Link>)}
-                {!visible.length && <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>No patients match filter.</div>}
-              </div>
-              <button className="all-patients" onClick={() => setActiveTab("patients")}>View all patients →</button>
-            </aside>
-          </section>
+
+              <aside className="patient-panel">
+                <div className="patient-panel-head">
+                  <div><h2>Patients</h2><span>{visible.length} shown</span></div>
+                  <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search patients..." aria-label="Search patients" />
+                </div>
+                <div className="filters">
+                  <button className={filter === "all" ? "selected" : ""} onClick={() => setFilter("all")}>All</button>
+                  <button className={filter === "critical" ? "selected critical" : ""} onClick={() => setFilter("critical")}>Urgent</button>
+                  <button className={filter === "attention" ? "selected attention" : ""} onClick={() => setFilter("attention")}>Review</button>
+                </div>
+                <div className="patient-list">
+                  {visible.map(p => <Link key={p.id} href={`/clinician/patient/${p.id}`} style={{ textDecoration: "none" }}><PatientRow patient={p} /></Link>)}
+                  {!visible.length && <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>No patients match filter.</div>}
+                </div>
+                <button className="all-patients" onClick={() => setActiveTab("patients")}>View all patients →</button>
+              </aside>
+            </section>
+          </>
         )}
 
         {activeTab === "patients" && (
           <section className="patients-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "16px", border: "1px solid var(--border-color)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search patients by name or ID..." style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--text-heading)", width: "320px", fontSize: "14px", outline: "none" }} />
+              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search patients by name or ID..." style={{ padding: "10px 16px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--text-heading)", width: "320px", fontSize: "14px", outline: "none" }} />
               <button className="submit" onClick={() => setIsAddOpen(true)} style={{ width: "auto", margin: 0, padding: "9px 18px" }}>＋ Add patient</button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem" }}>
               {visible.map(p => (
                 <Link href={`/clinician/patient/${p.id}`} key={p.id} style={{ textDecoration: "none", color: "inherit" }}>
                   <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "1.25rem", cursor: "pointer", transition: "all 0.2s ease" }}>
@@ -327,9 +332,9 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
                       <span className={`risk ${riskBand(p)}`}>{riskBand(p).toUpperCase()}</span>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", borderTop: "1px solid var(--border-color)", paddingTop: "0.75rem", fontSize: "12px" }}>
-                      <div><span style={{ color: "var(--text-muted)", display: "block" }}>LATEST</span><strong style={{ color: "var(--text-heading)" }}>{p.lastReading || "—"} mg/dL</strong></div>
+                      <div><span style={{ color: "var(--text-muted)", display: "block" }}>LATEST</span><strong style={{ color: "var(--text-heading)" }}>{p.lastReading ? `${p.lastReading} mg/dL` : "—"}</strong></div>
                       <div><span style={{ color: "var(--text-muted)", display: "block" }}>TIR</span><strong style={{ color: "#10b981" }}>{p.timeInRange}%</strong></div>
-                      <div><span style={{ color: "var(--text-muted)", display: "block" }}>EST. A1C</span><strong style={{ color: "#8b5cf6" }}>{p.a1c || "—"}%</strong></div>
+                      <div><span style={{ color: "var(--text-muted)", display: "block" }}>EST. A1C</span><strong style={{ color: "#6366f1" }}>{p.a1c ? `${p.a1c}%` : "—"}</strong></div>
                     </div>
                   </div>
                 </Link>
@@ -451,12 +456,12 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
             <p style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "1.5rem" }}>Generate billing compliance and clinical activity summaries for your panel.</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
               <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-color)", borderRadius: "10px", padding: "1.25rem" }}>
-                <h3 style={{ fontSize: "15px", color: "#3b82f6", margin: "0 0 0.5rem 0" }}>Monthly RPM Summary (CPT 99454 / 99457)</h3>
+                <h3 style={{ fontSize: "15px", color: "var(--text-heading)", margin: "0 0 0.5rem 0" }}>Monthly RPM Summary (CPT 99454 / 99457)</h3>
                 <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Exports 16+ reading transmission logs and clinical review time per patient.</p>
                 <button onClick={() => alert("Report compiled! Download started.")} className="outline-button" style={{ marginTop: "1rem" }}>↓ Download PDF Report</button>
               </div>
               <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-color)", borderRadius: "10px", padding: "1.25rem" }}>
-                <h3 style={{ fontSize: "15px", color: "var(--accent-primary)", margin: "0 0 0.5rem 0" }}>Glycemia Population Health Audit</h3>
+                <h3 style={{ fontSize: "15px", color: "var(--text-heading)", margin: "0 0 0.5rem 0" }}>Glycemia Population Health Audit</h3>
                 <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Overall TIR distribution, severe hypoglycemic event frequencies, and HbA1c estimates.</p>
                 <button onClick={() => alert("CSV Audit Report exported.")} className="outline-button" style={{ marginTop: "1rem" }}>↓ Export CSV Data</button>
               </div>
@@ -538,17 +543,21 @@ function Stat({ value, label, detail, tone }: { value: string; label: string; de
 function PatientRow({ patient: p }: { patient: PatientSnapshot }) {
   const band = riskBand(p);
   return (
-    <article className="patient-row">
+    <article className="patient-row" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 18px", borderBottom: "1px solid var(--border-color)" }}>
       <div className={`patient-initials ${band}`}>{p.initials}</div>
-      <div className="patient-name">
-        <b>{p.name}</b>
-        <small>Last reading {p.lastLoggedHoursAgo === 999 ? "never" : `${p.lastLoggedHoursAgo}h ago`}</small>
+      <div className="patient-name" style={{ flex: 1 }}>
+        <b style={{ color: "var(--text-heading)", fontSize: "14px", display: "block" }}>{p.name}</b>
+        <small style={{ color: "var(--text-muted)", fontSize: "11px", display: "block", marginTop: "2px" }}>
+          {p.lastLoggedHoursAgo === 999 ? "Last reading never" : `Last reading ${p.lastLoggedHoursAgo}h ago`}
+        </small>
       </div>
-      <div className="patient-reading">
-        <b>{p.lastReading || "—"}</b>
-        <small>mg/dL</small>
+      <div className="patient-reading" style={{ textAlign: "right", marginRight: "12px" }}>
+        <b style={{ color: "var(--text-heading)", fontSize: "14px" }}>{p.lastReading ? `${p.lastReading}` : "—"}</b>
+        <small style={{ color: "var(--text-muted)", fontSize: "11px", marginLeft: "3px" }}>mg/dL</small>
       </div>
-      <span className={`risk ${band}`}>{band === "critical" ? "Urgent" : band === "attention" ? "Review" : "Stable"}</span>
+      <span className={`risk ${band}`} style={{ padding: "4px 10px", borderRadius: "6px", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        {band === "critical" ? "Urgent" : band === "attention" ? "Review" : "Stable"}
+      </span>
     </article>
   );
 }

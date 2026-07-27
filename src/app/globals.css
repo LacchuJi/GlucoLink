@@ -72,7 +72,7 @@ body{margin:0;background:var(--bg-app);color:var(--text-main);font-family:"DM Sa
 
 .brand, .clinical-brand{font-size:22px;font-weight:700;display:flex;align-items:center;gap:9px;padding:0 10px 27px;color:var(--text-heading);text-decoration:none}
 .brand>span:last-child span, .clinical-brand b{color:var(--accent-primary)}
-.brand-mark, .clinical-brand>span{display:grid;place-items:center;width:30px;height:30px;background:var(--accent-primary);border-radius:9px;color:#fff;font-family:Fraunces;font-weight:600}
+.brand-mark, .clinical-brand>span{display:grid;place-items:center;width:30px;height:30px;background:var(--accent-primary);border-radius:99px;color:#fff;font-family:Fraunces;font-weight:600}
 
 .workspace, .clinic{background:var(--bg-subtle);display:flex;gap:10px;border-radius:var(--radius-md);padding:10px 12px;margin:0 4px 22px;align-items:center;font-size:12px;color:var(--text-main);border:1px solid var(--border-color)}
 .workspace small, .clinic small{display:block;color:var(--text-muted);margin-top:3px}
@@ -164,22 +164,23 @@ header, .clinical-header{display:flex;justify-content:space-between;align-items:
 .metric b, .clinical-stat b{font-size:26px;display:block;margin:9px 0 4px;color:var(--text-heading)}
 .metric span, .clinical-stat small{font-size:11px;color:var(--text-muted)}
 
-.card-title{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px}
-.card-title button, .btn-link{background:transparent;border:0;color:var(--accent-primary);font-size:12px;font-weight:600;cursor:pointer;padding:0}
-.card-title button:hover, .btn-link:hover{text-decoration:underline}
+.list-card{padding:24px}
+.card-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border-color)}
+.card-title button, .btn-link{background:transparent;border:0;color:var(--accent-primary);font-size:12px;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:6px}
+.card-title button:hover, .btn-link:hover{background:var(--accent-light);text-decoration:none}
 
-.care-card{padding:21px 25px}
-.care-top{display:flex;justify-content:space-between;align-items:center}
+.care-card{padding:24px}
+.care-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .pill{font-size:9px;letter-spacing:.8px;font-weight:700;background:var(--accent-light);color:var(--accent-primary);border-radius:5px;padding:4px 8px;display:inline-block}
 .care-top button{border:0;background:transparent;color:var(--text-muted);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:4px}
 .care-top button:hover{background:var(--bg-subtle);color:var(--text-heading)}
 
-.care-footer{margin-top:27px;border-top:1px solid var(--border-color);padding-top:13px;display:flex;justify-content:space-between;align-items:center}
+.care-footer{margin-top:24px;border-top:1px solid var(--border-color);padding-top:16px;display:flex;justify-content:space-between;align-items:center}
 .care-footer span{font-size:11px;color:var(--text-muted)}
 .care-footer button, .btn-pill{background:var(--accent-primary);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:background 0.15s ease}
 .care-footer button:hover, .btn-pill:hover{background:var(--accent-hover)}
 
-.reading-row, .patient-row{border-top:1px solid var(--border-color);display:flex;align-items:center;padding:12px 0;gap:12px}
+.reading-row, .patient-row{border-top:1px solid var(--border-color);display:flex;align-items:center;padding:14px 0;gap:12px}
 .reading-dot{width:8px;height:8px;border-radius:50%;background:var(--accent-primary)}
 .reading-row div, .patient-name{flex:1}
 .reading-row b, .patient-name b{font-size:13px;display:block;color:var(--text-heading)}
@@ -190,7 +191,7 @@ header, .clinical-header{display:flex;justify-content:space-between;align-items:
 .modal{width:min(420px,100%);background:var(--bg-card);border-radius:var(--radius-lg);padding:28px;position:relative;box-shadow:var(--shadow-md);border:1px solid var(--border-color);color:var(--text-main)}
 .modal h2{margin:8px 0 16px;font-size:22px;color:var(--text-heading)}
 .modal label{display:block;font-size:12px;font-weight:600;margin:14px 0;color:var(--text-main)}
-.modal input, .modal select{width:100%;border:1px solid var(--border-color);border-radius:9px;padding:11px 14px;font:inherit;margin-top:6px;background:var(--bg-subtle);color:var(--text-main);outline:none}
+.modal input, .modal select{width:100%;border:1px solid var(--border-color);border-radius:99px;padding:11px 16px;font:inherit;margin-top:6px;background:var(--bg-subtle);color:var(--text-main);outline:none}
 .modal input:focus, .modal select:focus{border-color:var(--accent-primary)}
 
 .close{position:absolute;right:16px;top:16px;width:32px;height:32px;border:0;background:var(--bg-subtle);color:var(--text-muted);border-radius:50%;display:grid;place-items:center;font-size:18px;cursor:pointer;line-height:1;transition:all 0.15s ease}
