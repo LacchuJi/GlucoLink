@@ -73,6 +73,9 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
       }
       if (aRes.alerts) setAlerts(aRes.alerts);
       setLoading(false);
+    }).catch((err) => {
+      console.error("Clinical loadData error:", err);
+      setLoading(false);
     });
   };
 
@@ -238,12 +241,14 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
           userInitials="DR"
         />
 
-        <section className="clinical-stats">
-          <Stat value={patients.length.toString()} label="ACTIVE PATIENTS" detail="Total assigned" tone="blue" />
-          <Stat value={critical.toString()} label="NEED URGENT REVIEW" detail="Requires attention today" tone="red" />
-          <Stat value={attention.toString()} label="MONITORING GAPS" detail="May need check-in" tone="amber" />
-          <Stat value={messages.length.toString()} label="TELEHEALTH FEED" detail="Inbox threads" tone="purple" />
-        </section>
+        {activeTab !== "messages" && (
+          <section className="clinical-stats">
+            <Stat value={patients.length.toString()} label="ACTIVE PATIENTS" detail="Total assigned" tone="blue" />
+            <Stat value={critical.toString()} label="NEED URGENT REVIEW" detail="Requires attention today" tone="red" />
+            <Stat value={attention.toString()} label="MONITORING GAPS" detail="May need check-in" tone="amber" />
+            <Stat value={messages.length.toString()} label="TELEHEALTH FEED" detail="Inbox threads" tone="purple" />
+          </section>
+        )}
 
         {activeTab === "overview" && (
           <section className="clinical-main">
@@ -271,12 +276,12 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
                 })}
                 {!alerts.length && <div className="empty">All priority signals have been reviewed.</div>}
               </div>
-              <article className="ai-card" style={{ marginTop: "20px" }}>
+              <article className="ai-card">
                 <div>
                   <span className="ai-icon">✦</span>
-                  <p className="eyebrow" style={{ color: "#a5b4fc" }}>CLINICAL REVIEW ASSISTANT</p>
+                  <p className="eyebrow">CLINICAL REVIEW ASSISTANT</p>
                   <h3>Generate a review brief</h3>
-                  <p style={{ color: "#cbd5e1" }}>Creates a draft based on recorded readings and care activity. You remain responsible for review and sign-off.</p>
+                  <p>Creates a draft based on recorded readings and care activity. You remain responsible for review and sign-off.</p>
                 </div>
                 <button onClick={() => alert("Summary drafting is available in the individual Patient Profile view.")}>Generate draft summary</button>
               </article>
@@ -285,7 +290,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
             <aside className="patient-panel">
               <div className="patient-panel-head">
                 <div><h2>Patients</h2><span>{visible.length} shown</span></div>
-                <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search patients" aria-label="Search patients" />
+                <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search patients..." aria-label="Search patients" />
               </div>
               <div className="filters">
                 <button className={filter === "all" ? "selected" : ""} onClick={() => setFilter("all")}>All</button>
@@ -294,23 +299,23 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
               </div>
               <div className="patient-list">
                 {visible.map(p => <Link key={p.id} href={`/clinician/patient/${p.id}`} style={{ textDecoration: "none" }}><PatientRow patient={p} /></Link>)}
-                {!visible.length && <div style={{ padding: "1.5rem", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>No patients match filter.</div>}
+                {!visible.length && <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>No patients match filter.</div>}
               </div>
-              <button className="all-patients" onClick={() => setActiveTab("patients")} style={{ borderTop: "1px solid var(--border-color)", cursor: "pointer" }}>View all patients →</button>
+              <button className="all-patients" onClick={() => setActiveTab("patients")}>View all patients →</button>
             </aside>
           </section>
         )}
 
         {activeTab === "patients" && (
-          <section className="patients-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "12px", border: "1px solid var(--border-color)" }}>
+          <section className="patients-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "16px", border: "1px solid var(--border-color)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search patients by name or ID..." style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--text-main)", width: "320px", fontSize: "14px" }} />
-              <button className="submit" onClick={() => setIsAddOpen(true)} style={{ width: "auto", margin: 0, padding: "8px 16px" }}>＋ Add patient</button>
+              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search patients by name or ID..." style={{ padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--text-heading)", width: "320px", fontSize: "14px", outline: "none" }} />
+              <button className="submit" onClick={() => setIsAddOpen(true)} style={{ width: "auto", margin: 0, padding: "9px 18px" }}>＋ Add patient</button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
               {visible.map(p => (
                 <Link href={`/clinician/patient/${p.id}`} key={p.id} style={{ textDecoration: "none", color: "inherit" }}>
-                  <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-color)", borderRadius: "10px", padding: "1.25rem", cursor: "pointer", transition: "all 0.2s ease" }}>
+                  <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "1.25rem", cursor: "pointer", transition: "all 0.2s ease" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <span className={`patient-initials ${riskBand(p)}`}>{p.initials}</span>
@@ -329,25 +334,25 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
                   </div>
                 </Link>
               ))}
-              {!visible.length && <p style={{ color: "var(--text-muted)", fontSize: "14px", gridColumn: "1/-1", padding: "2rem", textAlign: "center" }}>No assigned patients found.</p>}
+              {!visible.length && <p style={{ color: "var(--text-muted)", fontSize: "14px", gridColumn: "1/-1", padding: "3rem", textAlign: "center" }}>No assigned patients found.</p>}
             </div>
           </section>
         )}
 
         {activeTab === "alerts" && (
-          <section className="alerts-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "12px", border: "1px solid var(--border-color)" }}>
+          <section className="alerts-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "16px", border: "1px solid var(--border-color)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-              <h2 style={{ color: "var(--text-heading)", margin: 0, fontSize: "1.1rem" }}>Active Clinical Alerts Queue ({alerts.length})</h2>
+              <h2 style={{ color: "var(--text-heading)", margin: 0, fontSize: "18px" }}>Active Clinical Alerts Queue ({alerts.length})</h2>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                <button className={filter === "all" ? "selected" : ""} onClick={() => setFilter("all")} style={{ padding: "6px 12px", background: filter === "all" ? "var(--accent-light)" : "var(--bg-subtle)", color: filter === "all" ? "var(--accent-primary)" : "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>All</button>
-                <button className={filter === "critical" ? "selected critical" : ""} onClick={() => setFilter("critical")} style={{ padding: "6px 12px", background: filter === "critical" ? "#fef2f2" : "var(--bg-subtle)", color: filter === "critical" ? "#dc2626" : "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}>Critical Only</button>
+                <button className={filter === "all" ? "selected" : ""} onClick={() => setFilter("all")} style={{ padding: "6px 14px", background: filter === "all" ? "var(--accent-light)" : "var(--bg-subtle)", color: filter === "all" ? "var(--accent-primary)" : "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>All</button>
+                <button className={filter === "critical" ? "selected critical" : ""} onClick={() => setFilter("critical")} style={{ padding: "6px 14px", background: filter === "critical" ? "#fef2f2" : "var(--bg-subtle)", color: filter === "critical" ? "#dc2626" : "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>Critical Only</button>
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {alerts.filter(a => filter === "all" || a.severity === filter).map(a => {
                 const patient = patients.find(p => p.id === a.patientId);
                 return (
-                  <div key={a.id} style={{ background: "var(--bg-subtle)", borderLeft: `4px solid ${a.severity === "critical" ? "#ef4444" : "#f59e0b"}`, border: "1px solid var(--border-color)", borderRadius: "8px", padding: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div key={a.id} style={{ background: "var(--bg-subtle)", borderLeft: `4px solid ${a.severity === "critical" ? "#ef4444" : "#f59e0b"}`, border: "1px solid var(--border-color)", borderRadius: "10px", padding: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "0.5rem" }}>
                         <span style={{ background: a.severity === "critical" ? "#ef4444" : "#f59e0b", color: "#fff", fontWeight: "bold", fontSize: "11px", padding: "2px 6px", borderRadius: "4px" }}>{a.severity.toUpperCase()}</span>
@@ -364,41 +369,41 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
                   </div>
                 );
               })}
-              {!alerts.length && <p style={{ color: "var(--text-muted)", padding: "2rem", textAlign: "center" }}>No open alerts in your clinical queue.</p>}
+              {!alerts.length && <p style={{ color: "var(--text-muted)", padding: "3rem", textAlign: "center" }}>No open alerts in your clinical queue.</p>}
             </div>
           </section>
         )}
 
         {activeTab === "messages" && (
-          <section className="messages-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "12px", border: "1px solid var(--border-color)", display: "grid", gridTemplateColumns: "260px 1fr", gap: "1.5rem", minHeight: "480px" }}>
+          <section className="messages-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "16px", border: "1px solid var(--border-color)", display: "grid", gridTemplateColumns: "260px 1fr", gap: "1.5rem", minHeight: "550px" }}>
             <div style={{ borderRight: "1px solid var(--border-color)", paddingRight: "1rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                <h3 style={{ color: "var(--text-heading)", fontSize: "14px", margin: 0 }}>Assigned Patient Threads</h3>
-                <span style={{ fontSize: "10px", color: "var(--accent-primary)", background: "var(--accent-light)", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" }}>● Fast Sync 1.5s</span>
+                <h3 style={{ color: "var(--text-heading)", fontSize: "14px", margin: 0 }}>Assigned Threads</h3>
+                <span style={{ fontSize: "10px", color: "var(--accent-primary)", background: "var(--accent-light)", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" }}>● 1.5s Sync</span>
               </div>
               {patients.map(p => (
-                <div key={p.id} onClick={() => setSelectedPatientId(p.id)} style={{ padding: "10px", borderRadius: "8px", background: selectedPatientId === p.id ? "var(--bg-subtle)" : "transparent", cursor: "pointer", color: "var(--text-main)", marginBottom: "0.5rem", border: "1px solid " + (selectedPatientId === p.id ? "var(--border-color)" : "transparent"), display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div key={p.id} onClick={() => setSelectedPatientId(p.id)} style={{ padding: "10px 12px", borderRadius: "8px", background: selectedPatientId === p.id ? "var(--bg-subtle)" : "transparent", cursor: "pointer", color: "var(--text-main)", marginBottom: "0.5rem", border: "1px solid " + (selectedPatientId === p.id ? "var(--border-color)" : "transparent"), display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <strong style={{ display: "block", fontSize: "14px", color: "var(--text-heading)" }}>{p.name}</strong>
-                    <small style={{ color: "var(--text-muted)", fontSize: "12px" }}>ID: {p.id.slice(0, 8)}</small>
+                    <small style={{ color: "var(--text-muted)", fontSize: "11px" }}>ID: {p.id.slice(0, 8)}</small>
                   </div>
                   {Boolean(p.unreadCount) && (
                     <span style={{ background: "#ef4444", color: "#fff", borderRadius: "99px", padding: "2px 8px", fontSize: "10px", fontWeight: "bold" }}>{p.unreadCount}</span>
                   )}
                 </div>
               ))}
-              {!patients.length && <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>No assigned patients found.</p>}
+              {!patients.length && <p style={{ color: "var(--text-muted)", fontSize: "13px", padding: "10px 0" }}>No assigned patient threads.</p>}
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem", overflowY: "auto", paddingRight: "0.5rem", maxHeight: "330px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem", overflowY: "auto", paddingRight: "0.5rem", maxHeight: "400px" }}>
                 {messages.map(m => (
-                  <div key={m.id} style={{ alignSelf: m.senderRole === "DOCTOR" ? "flex-end" : "flex-start", background: m.senderRole === "DOCTOR" ? "var(--accent-primary)" : "var(--bg-subtle)", color: m.senderRole === "DOCTOR" ? "#fff" : "var(--text-main)", padding: "12px 16px", borderRadius: "12px", maxWidth: "75%", fontSize: "14px" }}>
+                  <div key={m.id} style={{ alignSelf: m.senderRole === "DOCTOR" ? "flex-end" : "flex-start", background: m.senderRole === "DOCTOR" ? "var(--accent-primary)" : "var(--bg-subtle)", color: m.senderRole === "DOCTOR" ? "#fff" : "var(--text-main)", padding: "14px 18px", borderRadius: "14px", maxWidth: "75%", fontSize: "14px" }}>
                     <p style={{ margin: 0 }}>{m.content}</p>
                     
                     {/* Embedded Glucose Reading */}
                     {m.reading && (
-                      <div style={{ marginTop: "8px", padding: "8px 10px", background: "rgba(0,0,0,0.06)", borderRadius: "6px", borderLeft: "3px solid #3b82f6" }}>
+                      <div style={{ marginTop: "8px", padding: "8px 10px", background: "rgba(0,0,0,0.08)", borderRadius: "6px", borderLeft: "3px solid #3b82f6" }}>
                         <span style={{ fontSize: "11px", fontWeight: "bold", display: "block" }}>📊 Patient Reading</span>
                         <strong style={{ fontSize: "15px" }}>{m.reading.valueMgDl} mg/dL</strong>
                         <small style={{ display: "block", fontSize: "10px", opacity: 0.85 }}>{m.reading.context} · {new Date(m.reading.recordedAt).toLocaleString()}</small>
@@ -413,7 +418,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
                       </div>
                     )}
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px" }}>
                       <small style={{ color: m.senderRole === "DOCTOR" ? "rgba(255,255,255,0.8)" : "var(--text-muted)", fontSize: "10px" }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
                       {m.senderRole === "DOCTOR" && (
                         <small style={{ color: m.isRead ? "#a7f3d0" : "#d1fae5", fontSize: "10px", fontWeight: "bold" }}>{m.isRead ? "✓✓ Read" : "✓ Sent"}</small>
@@ -421,36 +426,36 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
                     </div>
                   </div>
                 ))}
-                {!messages.length && <p style={{ color: "var(--text-muted)", padding: "2rem", textAlign: "center" }}>No messages in this patient thread yet.</p>}
+                {!messages.length && <p style={{ color: "var(--text-muted)", padding: "3rem", textAlign: "center" }}>No messages in this patient thread yet.</p>}
               </div>
 
               {/* AI Quick Response Chips */}
-              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", margin: "10px 0 6px" }}>
-                <span style={{ fontSize: "10px", color: "var(--accent-primary)", fontWeight: "bold", alignSelf: "center" }}>✦ AI CHIPS:</span>
-                <button type="button" onClick={() => setChatMessage("I reviewed your recent readings. Everything looks stable! Keep up your current routine.")} style={{ padding: "4px 8px", background: "var(--bg-subtle)", color: "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}>"Everything looks stable!"</button>
-                <button type="button" onClick={() => setChatMessage("I noticed a post-meal spike. Did you take your prescribed dosage with dinner?")} style={{ padding: "4px 8px", background: "var(--bg-subtle)", color: "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}>"Did you take your dosage?"</button>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", margin: "12px 0 8px" }}>
+                <span style={{ fontSize: "11px", color: "var(--accent-primary)", fontWeight: "bold", alignSelf: "center" }}>✦ AI CHIPS:</span>
+                <button type="button" onClick={() => setChatMessage("I reviewed your recent readings. Everything looks stable! Keep up your current routine.")} style={{ padding: "6px 10px", background: "var(--bg-subtle)", color: "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}>"Everything looks stable!"</button>
+                <button type="button" onClick={() => setChatMessage("I noticed a post-meal spike. Did you take your prescribed dosage with dinner?")} style={{ padding: "6px 10px", background: "var(--bg-subtle)", color: "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}>"Did you take your dosage?"</button>
               </div>
 
               <form onSubmit={e => handleSendMessage(e)} style={{ display: "flex", gap: "0.5rem" }}>
-                <button type="button" onClick={() => setIsDirectiveOpen(true)} style={{ padding: "0 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--accent-primary)", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>✚ Prescribe Directive</button>
-                <input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a secure message to patient..." style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--text-main)", outline: "none", fontSize: "14px" }} />
-                <button disabled={sendingMsg} className="submit" style={{ width: "auto", margin: 0, padding: "10px 18px" }}>{sendingMsg ? "Sending..." : "Send"}</button>
+                <button type="button" onClick={() => setIsDirectiveOpen(true)} style={{ padding: "0 14px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--accent-primary)", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>✚ Prescribe Directive</button>
+                <input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a secure message to patient..." style={{ flex: 1, padding: "12px 16px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-subtle)", color: "var(--text-main)", outline: "none", fontSize: "14px" }} />
+                <button disabled={sendingMsg} className="submit" style={{ width: "auto", margin: 0, padding: "10px 20px" }}>{sendingMsg ? "Sending..." : "Send"}</button>
               </form>
             </div>
           </section>
         )}
 
         {activeTab === "reports" && (
-          <section className="reports-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "12px", border: "1px solid var(--border-color)" }}>
+          <section className="reports-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "16px", border: "1px solid var(--border-color)" }}>
             <h2 style={{ fontSize: "1.1rem", margin: "0 0 1rem 0", color: "var(--text-heading)" }}>Remote Patient Monitoring (RPM) Reports</h2>
             <p style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "1.5rem" }}>Generate billing compliance and clinical activity summaries for your panel.</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "1.25rem" }}>
+              <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-color)", borderRadius: "10px", padding: "1.25rem" }}>
                 <h3 style={{ fontSize: "15px", color: "#3b82f6", margin: "0 0 0.5rem 0" }}>Monthly RPM Summary (CPT 99454 / 99457)</h3>
                 <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Exports 16+ reading transmission logs and clinical review time per patient.</p>
                 <button onClick={() => alert("Report compiled! Download started.")} className="outline-button" style={{ marginTop: "1rem" }}>↓ Download PDF Report</button>
               </div>
-              <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "1.25rem" }}>
+              <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-color)", borderRadius: "10px", padding: "1.25rem" }}>
                 <h3 style={{ fontSize: "15px", color: "var(--accent-primary)", margin: "0 0 0.5rem 0" }}>Glycemia Population Health Audit</h3>
                 <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Overall TIR distribution, severe hypoglycemic event frequencies, and HbA1c estimates.</p>
                 <button onClick={() => alert("CSV Audit Report exported.")} className="outline-button" style={{ marginTop: "1rem" }}>↓ Export CSV Data</button>
@@ -460,7 +465,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
         )}
 
         {activeTab === "settings" && (
-          <section className="settings-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "12px", border: "1px solid var(--border-color)" }}>
+          <section className="settings-tab" style={{ background: "var(--bg-card)", padding: "1.5rem", borderRadius: "16px", border: "1px solid var(--border-color)" }}>
             <h2 style={{ fontSize: "1.1rem", margin: "0 0 1rem 0", color: "var(--text-heading)" }}>Clinic Practice & Threshold Settings</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "450px" }}>
               <label style={{ fontSize: "13px", color: "var(--text-main)" }}>Critical High Threshold (mg/dL)
@@ -484,7 +489,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
         <div className="modal-backdrop">
           <div className="modal" style={{ maxWidth: "420px" }}>
             <button type="button" className="close" onClick={() => setIsDirectiveOpen(false)}>×</button>
-            <p className="eyebrow">CLINICAL CARE DIRECTIVE</p>
+            <p className="eyebrow" style={{ marginTop: "4px" }}>CLINICAL CARE DIRECTIVE</p>
             <h2>Issue Prescription Update</h2>
             <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>Send an interactive care plan directive for patient acceptance.</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -504,7 +509,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
         <div className="modal-backdrop">
           <form className="modal" onSubmit={handleAddPatient}>
             <button type="button" className="close" onClick={() => setIsAddOpen(false)}>×</button>
-            <p className="eyebrow">ONBOARDING</p>
+            <p className="eyebrow" style={{ marginTop: "4px" }}>ONBOARDING</p>
             <h2>Assign Patient</h2>
             <p style={{ color: "var(--text-muted)", fontSize: "14px", marginBottom: "1.5rem" }}>Enter the registered email of the patient to add them to your care panel.</p>
             <label>Patient Email
