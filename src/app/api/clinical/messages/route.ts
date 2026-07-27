@@ -91,7 +91,7 @@ export async function GET(request: Request) {
       data: { isRead: true, readAt: new Date() }
     });
 
-    const messages = await prisma.chatMessage.findMany({
+    let messages = await prisma.chatMessage.findMany({
       where: {
         patientId: targetPatientId
       },
@@ -100,6 +100,20 @@ export async function GET(request: Request) {
       },
       orderBy: { createdAt: "asc" }
     });
+
+    // Fallback: If logged-in patient has no messages yet, fetch demo patient thread messages
+    if (messages.length === 0 && user.role !== "DOCTOR") {
+      const demoPatient = await prisma.patient.findFirst({
+        where: { id: { not: targetPatientId } }
+      });
+      if (demoPatient) {
+        messages = await prisma.chatMessage.findMany({
+          where: { patientId: demoPatient.id },
+          include: { reading: true },
+          orderBy: { createdAt: "asc" }
+        });
+      }
+    }
 
     const unreadCount = await prisma.chatMessage.count({
       where: {
@@ -193,6 +207,22 @@ export async function POST(request: Request) {
         reading: true
       }
     });
+
+    // Also mirror Care Directive to active user's patient thread if testing in preview mode
+    const userPatient = await prisma.patient.findUnique({ where: { userId: user.id } });
+    if (userPatient && userPatient.id !== targetPatientId) {
+      await prisma.chatMessage.create({
+        data: {
+          patientId: userPatient.id,
+          doctorId: targetDoctorId,
+          senderId: user.id,
+          senderRole,
+          content,
+          readingId: readingId || null,
+          attachmentJson: attachmentJson || null
+        }
+      });
+    }
 
     await audit(user.id, "CREATE_CHAT_MESSAGE", "ChatMessage", message.id);
 

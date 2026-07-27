@@ -22,8 +22,10 @@ export async function evaluateAlerts(patientId: string) {
   // 2. Severe Low Alert
   if (latest.valueMgDl <= 54) {
     await createAlertIfMissing(patientId, "SEVERE_LOW", "critical", "Severe Low Glucose", `Patient recorded a severe low glucose of ${latest.valueMgDl} mg/dL.`, "Contact patient");
+    await resolveAlertIfOpen(patientId, "LOW");
   } else if (latest.valueMgDl < 70) {
     await createAlertIfMissing(patientId, "LOW", "attention", "Low Glucose", `Patient recorded a low glucose of ${latest.valueMgDl} mg/dL.`, "Review trend");
+    await resolveAlertIfOpen(patientId, "SEVERE_LOW");
   } else {
     await resolveAlertIfOpen(patientId, "SEVERE_LOW");
     await resolveAlertIfOpen(patientId, "LOW");

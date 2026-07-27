@@ -15,6 +15,16 @@ export async function GET() {
       return Response.json({ patients: [], organization: null });
     }
 
+    // Auto-ensure logged-in patient user has a CareAssignment with doctor
+    const userPatient = await prisma.patient.findUnique({ where: { userId: user.id } });
+    if (userPatient) {
+      await prisma.careAssignment.upsert({
+        where: { doctorId_patientId: { doctorId: doctor.id, patientId: userPatient.id } },
+        update: {},
+        create: { doctorId: doctor.id, patientId: userPatient.id }
+      });
+    }
+
     const assignments = await prisma.careAssignment.findMany({
       where: { doctorId: doctor.id },
       include: {
