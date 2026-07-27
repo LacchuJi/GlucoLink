@@ -49,6 +49,11 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
   const [activeToast, setActiveToast] = useState<{ title: string; message: string; sender: string } | null>(null);
   
   const lastMsgCountRef = useRef<number>(0);
+  const selectedPatientIdRef = useRef<string>("");
+
+  useEffect(() => {
+    selectedPatientIdRef.current = selectedPatientId;
+  }, [selectedPatientId]);
 
   // Directive Modal
   const [isDirectiveOpen, setIsDirectiveOpen] = useState(false);
@@ -60,9 +65,9 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
       fetch("/api/clinical/patients").then(r => r.json()),
       fetch("/api/clinical/alerts").then(r => r.json())
     ]).then(([pRes, aRes]) => {
-      if (pRes.patients) {
+      if (pRes.patients && pRes.patients.length > 0) {
         setPatients(pRes.patients);
-        if (pRes.patients.length > 0 && !selectedPatientId) {
+        if (!selectedPatientIdRef.current) {
           setSelectedPatientId(pRes.patients[0].id);
         }
       }
@@ -77,16 +82,23 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
 
   // Continuous Fast Sync Engine (1500ms)
   const fetchMessages = () => {
-    if (!selectedPatientId) return;
-    fetch(`/api/clinical/messages?patientId=${selectedPatientId}`)
+    const activeId = selectedPatientIdRef.current;
+    const url = activeId ? `/api/clinical/messages?patientId=${activeId}` : `/api/clinical/messages`;
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
+        if (data.patients && data.patients.length > 0) {
+          if (!activeId) {
+            setSelectedPatientId(data.patients[0].id);
+          }
+        }
+
         if (data.messages) {
           const newMsgs: ApiMessage[] = data.messages;
           if (lastMsgCountRef.current > 0 && newMsgs.length > lastMsgCountRef.current) {
             const latest = newMsgs[newMsgs.length - 1];
             if (latest && latest.senderRole === "PATIENT") {
-              const patientObj = patients.find(p => p.id === selectedPatientId);
+              const patientObj = patients.find(p => p.id === activeId);
               setActiveToast({
                 title: "New Patient Telehealth Message",
                 message: latest.content,
@@ -141,11 +153,11 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
   async function handleSendMessage(e: FormEvent, customText?: string, attachmentPayload?: object) {
     if (e) e.preventDefault();
     const textToSend = customText || chatMessage;
-    if ((!textToSend.trim() && !attachmentPayload) || !selectedPatientId || sendingMsg) return;
+    if ((!textToSend.trim() && !attachmentPayload) || sendingMsg) return;
     setSendingMsg(true);
     try {
-      const payload: { patientId: string; content: string; attachmentJson?: string } = {
-        patientId: selectedPatientId,
+      const payload: { patientId?: string; content: string; attachmentJson?: string } = {
+        patientId: selectedPatientId || undefined,
         content: textToSend
       };
       if (attachmentPayload) {
@@ -428,7 +440,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
               <form onSubmit={e => handleSendMessage(e)} style={{ display: "flex", gap: "0.5rem" }}>
                 <button type="button" onClick={() => setIsDirectiveOpen(true)} style={{ padding: "0 12px", borderRadius: "8px", border: "1px solid #333", background: "#222", color: "#60a5fa", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}>✚ Prescribe Directive</button>
                 <input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Type a secure message to patient..." style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid #333", background: "#222", color: "#fff", outline: "none", fontSize: "14px" }} />
-                <button disabled={sendingMsg || !selectedPatientId} style={{ padding: "10px 18px", background: "#4ade80", color: "#000", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>{sendingMsg ? "Sending..." : "Send"}</button>
+                <button disabled={sendingMsg} style={{ padding: "10px 18px", background: "#4ade80", color: "#000", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>{sendingMsg ? "Sending..." : "Send"}</button>
               </form>
             </div>
           </section>

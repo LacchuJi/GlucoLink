@@ -17,42 +17,44 @@ export async function GET(request: Request) {
 
     let targetPatientId: string | null = null;
     let targetDoctorId: string | null = null;
+    let patientsWithUnread: { id: string; name: string; email: string; unreadCount: number }[] = [];
 
     if (user.role === "DOCTOR") {
       const doctor = await prisma.doctor.findUnique({ where: { userId: user.id } });
       if (!doctor) return Response.json({ error: "Doctor profile missing" }, { status: 403 });
       
       targetDoctorId = doctor.id;
-      if (!queryPatientId) {
-        const assignments = await prisma.careAssignment.findMany({
-          where: { doctorId: doctor.id },
-          include: { patient: { include: { user: true } } }
-        });
-        
-        // Calculate unread count for each patient
-        const patientsWithUnread = await Promise.all(
-          assignments.map(async (a) => {
-            const unread = await prisma.chatMessage.count({
-              where: {
-                patientId: a.patient.id,
-                doctorId: doctor.id,
-                senderRole: "PATIENT",
-                isRead: false
-              }
-            });
-            return {
-              id: a.patient.id,
-              name: a.patient.user.name,
-              email: a.patient.user.email,
-              unreadCount: unread
-            };
-          })
-        );
+      const assignments = await prisma.careAssignment.findMany({
+        where: { doctorId: doctor.id },
+        include: { patient: { include: { user: true } } }
+      });
+      
+      patientsWithUnread = await Promise.all(
+        assignments.map(async (a) => {
+          const unread = await prisma.chatMessage.count({
+            where: {
+              patientId: a.patient.id,
+              senderRole: "PATIENT",
+              isRead: false
+            }
+          });
+          return {
+            id: a.patient.id,
+            name: a.patient.user.name,
+            email: a.patient.user.email,
+            unreadCount: unread
+          };
+        })
+      );
 
-        return Response.json({ patients: patientsWithUnread, messages: [] });
+      if (queryPatientId) {
+        targetPatientId = queryPatientId;
+      } else if (assignments.length > 0) {
+        // Fallback for Doctor in Patient Preview Mode or default thread
+        targetPatientId = assignments[0].patient.id;
       }
-      targetPatientId = queryPatientId;
     } else {
+      // Patient Role
       let patient = await prisma.patient.findUnique({ where: { userId: user.id } });
       if (!patient) {
         patient = await prisma.patient.create({ data: { userId: user.id } });
@@ -74,8 +76,8 @@ export async function GET(request: Request) {
       targetDoctorId = assignment?.doctorId ?? null;
     }
 
-    if (!targetPatientId || !targetDoctorId) {
-      return Response.json({ messages: [], unreadCount: 0 });
+    if (!targetPatientId) {
+      return Response.json({ messages: [], patients: patientsWithUnread, unreadCount: 0 });
     }
 
     // Mark incoming messages as read
@@ -83,7 +85,6 @@ export async function GET(request: Request) {
     await prisma.chatMessage.updateMany({
       where: {
         patientId: targetPatientId,
-        doctorId: targetDoctorId,
         senderRole: oppositeRole,
         isRead: false
       },
@@ -92,8 +93,7 @@ export async function GET(request: Request) {
 
     const messages = await prisma.chatMessage.findMany({
       where: {
-        patientId: targetPatientId,
-        doctorId: targetDoctorId
+        patientId: targetPatientId
       },
       include: {
         reading: true
@@ -104,14 +104,14 @@ export async function GET(request: Request) {
     const unreadCount = await prisma.chatMessage.count({
       where: {
         patientId: targetPatientId,
-        doctorId: targetDoctorId,
         senderRole: oppositeRole,
         isRead: false
       }
     });
 
-    return Response.json({ messages, unreadCount });
+    return Response.json({ messages, patients: patientsWithUnread, unreadCount });
   } catch (error) {
+    console.error("Messages GET Error:", error);
     return Response.json({ error: "Failed to fetch messages" }, { status: 500 });
   }
 }
@@ -134,10 +134,26 @@ export async function POST(request: Request) {
       senderRole = "DOCTOR";
       const doctor = await prisma.doctor.findUnique({ where: { userId: user.id } });
       if (!doctor) return Response.json({ error: "Doctor profile missing" }, { status: 403 });
-      if (!bodyPatientId) return Response.json({ error: "Patient ID required for clinician message" }, { status: 400 });
+      
+      let targetPatient: { id: string } | null = null;
+      if (bodyPatientId) {
+        targetPatient = { id: bodyPatientId };
+      } else {
+        const firstAssign = await prisma.careAssignment.findFirst({ where: { doctorId: doctor.id } });
+        if (firstAssign) targetPatient = { id: firstAssign.patientId };
+      }
+
+      if (!targetPatient) return Response.json({ error: "No target patient found" }, { status: 400 });
 
       targetDoctorId = doctor.id;
-      targetPatientId = bodyPatientId;
+      targetPatientId = targetPatient.id;
+
+      // Ensure CareAssignment exists
+      await prisma.careAssignment.upsert({
+        where: { doctorId_patientId: { doctorId: doctor.id, patientId: targetPatientId } },
+        create: { doctorId: doctor.id, patientId: targetPatientId },
+        update: {}
+      });
     } else {
       senderRole = "PATIENT";
       let patient = await prisma.patient.findUnique({ where: { userId: user.id } });
@@ -181,6 +197,7 @@ export async function POST(request: Request) {
 
     return Response.json({ message }, { status: 201 });
   } catch (error) {
+    console.error("Messages POST Error:", error);
     return Response.json({ error: "Failed to send message" }, { status: 500 });
   }
 }
