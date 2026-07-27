@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useMemo, useState, FormEvent } from "react";
+import { useEffect, useMemo, useState, useRef, FormEvent } from "react";
 import { riskBand, riskScore, type PatientSnapshot, type ClinicalAlert } from "./triage";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProfileMenu } from "@/components/profile-menu";
+import { NotificationToast } from "@/components/notification-toast";
 
 type ApiMessage = {
   id: string;
@@ -45,6 +46,9 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
   const [chatMessage, setChatMessage] = useState("");
   const [messages, setMessages] = useState<ApiMessage[]>([]);
   const [sendingMsg, setSendingMsg] = useState(false);
+  const [activeToast, setActiveToast] = useState<{ title: string; message: string; sender: string } | null>(null);
+  
+  const lastMsgCountRef = useRef<number>(0);
 
   // Directive Modal
   const [isDirectiveOpen, setIsDirectiveOpen] = useState(false);
@@ -71,24 +75,37 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
     loadData();
   }, []);
 
-  // Fetch & poll chat messages for clinician
+  // Continuous Fast Sync Engine (1500ms)
   const fetchMessages = () => {
     if (!selectedPatientId) return;
     fetch(`/api/clinical/messages?patientId=${selectedPatientId}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.messages) setMessages(data.messages);
+        if (data.messages) {
+          const newMsgs: ApiMessage[] = data.messages;
+          if (lastMsgCountRef.current > 0 && newMsgs.length > lastMsgCountRef.current) {
+            const latest = newMsgs[newMsgs.length - 1];
+            if (latest && latest.senderRole === "PATIENT") {
+              const patientObj = patients.find(p => p.id === selectedPatientId);
+              setActiveToast({
+                title: "New Patient Telehealth Message",
+                message: latest.content,
+                sender: patientObj?.name || "Patient"
+              });
+            }
+          }
+          lastMsgCountRef.current = newMsgs.length;
+          setMessages(newMsgs);
+        }
       })
       .catch(console.error);
   };
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(() => {
-      if (activeTab === "messages") fetchMessages();
-    }, 3000);
+    const interval = setInterval(fetchMessages, 1500);
     return () => clearInterval(interval);
-  }, [activeTab, selectedPatientId]);
+  }, [selectedPatientId]);
 
   async function resolveAlert(id: string) {
     const res = await fetch("/api/clinical/alerts", {
@@ -143,6 +160,7 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
       const data = await res.json();
       if (data.message) {
         setMessages((prev) => [...prev, data.message]);
+        lastMsgCountRef.current += 1;
         setChatMessage("");
         setIsDirectiveOpen(false);
       }
@@ -165,6 +183,16 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
 
   return (
     <main className="clinical-shell">
+      {activeToast && (
+        <NotificationToast
+          title={activeToast.title}
+          message={activeToast.message}
+          sender={activeToast.sender}
+          onAction={() => setActiveTab("messages")}
+          onClose={() => setActiveToast(null)}
+        />
+      )}
+
       <aside className="clinical-sidebar">
         <Link className="clinical-brand" href="/"><span>G</span> Gluco<b>Link</b></Link>
         <div className="clinic">
@@ -338,7 +366,10 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
         {activeTab === "messages" && (
           <section className="messages-tab" style={{ background: "#111", padding: "1.5rem", borderRadius: "12px", border: "1px solid #333", display: "grid", gridTemplateColumns: "260px 1fr", gap: "1.5rem", minHeight: "480px" }}>
             <div style={{ borderRight: "1px solid #222", paddingRight: "1rem" }}>
-              <h3 style={{ color: "#fff", fontSize: "14px", margin: "0 0 1rem 0" }}>Assigned Patient Threads</h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <h3 style={{ color: "#fff", fontSize: "14px", margin: 0 }}>Assigned Patient Threads</h3>
+                <span style={{ fontSize: "10px", color: "#4ade80", background: "rgba(74,222,128,0.1)", padding: "2px 6px", borderRadius: "4px", fontWeight: "bold" }}>● Fast Sync 1.5s</span>
+              </div>
               {patients.map(p => (
                 <div key={p.id} onClick={() => setSelectedPatientId(p.id)} style={{ padding: "10px", borderRadius: "8px", background: selectedPatientId === p.id ? "#222" : "transparent", cursor: "pointer", color: "#fff", marginBottom: "0.5rem", border: "1px solid " + (selectedPatientId === p.id ? "#333" : "transparent"), display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>

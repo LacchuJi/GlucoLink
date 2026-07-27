@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, useRef } from "react";
 import { analytics, buildChartPoints, trend } from "@/features/glucose/analytics";
 import { type GlucoseReading, type MealContext } from "@/features/glucose/types";
 import { ClinicianDashboard } from "@/features/clinical/clinician-dashboard";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ProfileMenu } from "@/components/profile-menu";
+import { NotificationToast } from "@/components/notification-toast";
 
 const contextNames: Record<MealContext, string> = {
   FASTING: "Fasting",
@@ -51,6 +52,9 @@ export function Dashboard() {
   const [messages, setMessages] = useState<ApiMessage[]>([]);
   const [sendingMsg, setSendingMsg] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeToast, setActiveToast] = useState<{ title: string; message: string; sender: string } | null>(null);
+  
+  const lastMsgCountRef = useRef<number>(0);
 
   // Attachment Modal
   const [isAttachOpen, setIsAttachOpen] = useState(false);
@@ -81,12 +85,26 @@ export function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Fetch & poll chat messages
+  // Continuous Fast Sync Engine (1500ms)
   const fetchMessages = () => {
     fetch("/api/clinical/messages")
       .then((res) => res.json())
       .then((data) => {
-        if (data.messages) setMessages(data.messages);
+        if (data.messages) {
+          const newMsgs: ApiMessage[] = data.messages;
+          if (lastMsgCountRef.current > 0 && newMsgs.length > lastMsgCountRef.current) {
+            const latest = newMsgs[newMsgs.length - 1];
+            if (latest && latest.senderRole === "DOCTOR") {
+              setActiveToast({
+                title: "New Message Received",
+                message: latest.content,
+                sender: "Dr. Sarah Adams"
+              });
+            }
+          }
+          lastMsgCountRef.current = newMsgs.length;
+          setMessages(newMsgs);
+        }
         if (typeof data.unreadCount === "number") setUnreadCount(data.unreadCount);
       })
       .catch(console.error);
@@ -94,11 +112,9 @@ export function Dashboard() {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(() => {
-      if (activeTab === "messages" || unreadCount > 0) fetchMessages();
-    }, 3000);
+    const interval = setInterval(fetchMessages, 1500);
     return () => clearInterval(interval);
-  }, [activeTab, unreadCount]);
+  }, []);
 
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -149,6 +165,7 @@ export function Dashboard() {
       const data = await res.json();
       if (data.message) {
         setMessages((prev) => [...prev, data.message]);
+        lastMsgCountRef.current += 1;
         setPatientMsg("");
         setSelectedReadingForAttach(null);
         setIsAttachOpen(false);
@@ -188,6 +205,16 @@ export function Dashboard() {
 
   return (
     <main className="shell">
+      {activeToast && (
+        <NotificationToast
+          title={activeToast.title}
+          message={activeToast.message}
+          sender={activeToast.sender}
+          onAction={() => setActiveTab("messages")}
+          onClose={() => setActiveToast(null)}
+        />
+      )}
+
       <aside className="sidebar">
         <div className="brand"><span className="brand-mark">G</span><span>Gluco<span>Link</span></span></div>
         <div className="workspace"><span className="avatar">SA</span><div><b>Sarah Adams</b><small>Patient workspace</small></div></div>
@@ -215,7 +242,9 @@ export function Dashboard() {
           </div>
           <div className="header-actions">
             <ThemeToggle />
-            <button className="icon-btn" aria-label="Notifications">♧<b></b></button>
+            <button className="icon-btn" onClick={() => setActiveTab("messages")} aria-label="Notifications" style={{ cursor: "pointer" }}>
+              ♧{unreadCount > 0 && <b style={{ background: "#ef4444" }}></b>}
+            </button>
             <ProfileMenu defaultInitials="SA" />
           </div>
         </header>
@@ -411,7 +440,7 @@ export function Dashboard() {
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <h2 style={{ fontSize: "18px", margin: 0 }}>Care Team Telehealth Messages</h2>
-                <span style={{ fontSize: "12px", color: "#188e69", background: "#e6f7f0", padding: "4px 8px", borderRadius: "6px", fontWeight: "bold" }}>● Care Team Active</span>
+                <span style={{ fontSize: "12px", color: "#188e69", background: "#e6f7f0", padding: "4px 8px", borderRadius: "6px", fontWeight: "bold" }}>● Realtime Fast Sync (1.5s)</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "340px", overflowY: "auto", paddingRight: "4px" }}>
                 {messages.map(m => (
