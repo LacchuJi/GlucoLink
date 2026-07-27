@@ -236,8 +236,6 @@ export function ClinicianDashboard({ onToggleMode }: { onToggleMode?: () => void
           onNotificationClick={() => setActiveTab("alerts")}
           primaryActionLabel="＋ Add patient"
           onPrimaryAction={() => setIsAddOpen(true)}
-          secondaryActionLabel="⇄ Switch to Patient View"
-          onSecondaryAction={onToggleMode ?? (() => window.location.href = "/")}
           userInitials="DR"
         />
 

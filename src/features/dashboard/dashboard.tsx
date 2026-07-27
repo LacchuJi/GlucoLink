@@ -244,8 +244,6 @@ export function Dashboard() {
           onNotificationClick={() => setActiveTab("messages")}
           primaryActionLabel="＋ Log reading"
           onPrimaryAction={() => { setOpen(true); setSaveError(""); }}
-          secondaryActionLabel="⇄ Switch to Clinician Panel"
-          onSecondaryAction={() => setMode("clinical")}
           userInitials="SA"
         />
 
