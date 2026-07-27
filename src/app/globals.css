@@ -2,24 +2,24 @@
 @import "./clinical.css";
 @import "./auth.css";
 
-/* Shared Design Tokens */
+/* Core Design Tokens */
 :root {
-  --bg-app: #f7f9f8;
+  --bg-app: #f8faf9;
   --bg-card: #ffffff;
   --bg-sidebar: #ffffff;
-  --bg-subtle: #f4f8f6;
-  --border-color: #e9efec;
-  --border-hover: #dce5e0;
-  --text-main: #182521;
-  --text-heading: #16251f;
-  --text-muted: #78847f;
-  --text-subtle: #99a49f;
-  --accent-primary: #188e69;
-  --accent-hover: #147858;
-  --accent-light: #e6f7f0;
-  --accent-badge: #b7e3d4;
+  --bg-subtle: #f1f5f3;
+  --border-color: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --text-main: #1e293b;
+  --text-heading: #0f172a;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  --accent-primary: #059669;
+  --accent-hover: #047857;
+  --accent-light: #ecfdf5;
+  --accent-badge: #d1fae5;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.05);
   --radius-lg: 16px;
   --radius-md: 10px;
 }
@@ -27,32 +27,33 @@
 [data-theme="dark"] {
   --bg-app: #0b1411;
   --bg-card: #12211c;
-  --bg-sidebar: #101c18;
-  --bg-subtle: #162922;
-  --border-color: #1f332b;
-  --border-hover: #29453b;
-  --text-main: #f3f4f6;
+  --bg-sidebar: #0e1a16;
+  --bg-subtle: #182c25;
+  --border-color: #1f3a30;
+  --border-hover: #2a4d40;
+  --text-main: #f1f5f9;
   --text-heading: #ffffff;
-  --text-muted: #9ca3af;
-  --text-subtle: #6b7280;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
   --accent-primary: #10b981;
   --accent-hover: #059669;
-  --accent-light: #16382c;
-  --accent-badge: #1f4e3d;
+  --accent-light: #133a2d;
+  --accent-badge: #1b4d3e;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg-app);color:var(--text-main);font-family:"DM Sans",Arial,sans-serif}
+body{margin:0;background:var(--bg-app);color:var(--text-main);font-family:"DM Sans",Arial,sans-serif;-webkit-font-smoothing:antialiased}
 
+/* Layout Containers */
 .shell, .clinical-shell{display:flex;min-height:100vh;background:var(--bg-app)}
 
 .sidebar, .clinical-sidebar{background:var(--bg-sidebar);border-right:1px solid var(--border-color);width:250px;padding:28px 16px 20px;display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:100}
 
 .brand, .clinical-brand{font-size:22px;font-weight:700;display:flex;align-items:center;gap:9px;padding:0 10px 27px;color:var(--text-heading);text-decoration:none}
 .brand>span:last-child span, .clinical-brand b{color:var(--accent-primary)}
-.brand-mark, .clinical-brand>span{display:grid;place-items:center;width:29px;height:29px;background:var(--accent-primary);border-radius:9px;color:#fff;font-family:Fraunces;font-weight:600}
+.brand-mark, .clinical-brand>span{display:grid;place-items:center;width:30px;height:30px;background:var(--accent-primary);border-radius:9px;color:#fff;font-family:Fraunces;font-weight:600}
 
 .workspace, .clinic{background:var(--bg-subtle);display:flex;gap:10px;border-radius:var(--radius-md);padding:10px 12px;margin:0 4px 22px;align-items:center;font-size:12px;color:var(--text-main);border:1px solid var(--border-color)}
 .workspace small, .clinic small{display:block;color:var(--text-muted);margin-top:3px}
@@ -83,8 +84,8 @@ header, .clinical-header{display:flex;justify-content:space-between;align-items:
 .icon-btn b{position:absolute;right:8px;top:8px;width:7px;height:7px;background:#ef4444;border-radius:99px}
 .profile{width:38px;height:38px}
 
-/* Unified Card System */
-.glucose-card, .quick-card, .chart-card, .metric, .list-card, .care-card, .clinical-stat, .patient-panel, .alerts-tab, .messages-tab, .reports-tab, .settings-tab{background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);transition:border-color 0.2s ease}
+/* Cards & Containers */
+.glucose-card, .quick-card, .chart-card, .metric, .list-card, .care-card, .clinical-stat, .patient-panel, .alerts-tab, .messages-tab, .reports-tab, .settings-tab{background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);transition:all 0.2s ease}
 
 .hero-grid, .lower-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:20px}
 .glucose-card{padding:25px 27px 19px}
@@ -109,9 +110,9 @@ header, .clinical-header{display:flex;justify-content:space-between;align-items:
 .quick-card{padding:25px 27px;display:flex;flex-direction:column;justify-content:space-between}
 .quick-card h2, .section-heading h2, .list-card h2, .care-card h2{font-size:17px;line-height:1.35;margin:0;color:var(--text-heading)}
 .quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.quick-actions button, .outline-button{background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:9px;padding:9px 12px;font-size:12px;color:var(--text-main);font-weight:600;cursor:pointer;transition:all 0.15s ease}
+.quick-actions button, .outline-button{background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:9px;padding:9px 14px;font-size:12px;color:var(--text-main);font-weight:600;cursor:pointer;transition:all 0.15s ease}
 .quick-actions button:hover, .outline-button:hover{border-color:var(--border-hover);background:var(--bg-card)}
-.quick-actions button:first-child, .add-patient, .submit{background:var(--accent-primary);color:#fff;border:none}
+.quick-actions button:first-child, .add-patient, .submit{background:var(--accent-primary);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer}
 .quick-actions button:first-child:hover, .add-patient:hover, .submit:hover{background:var(--accent-hover)}
 
 .section-heading{display:flex;justify-content:space-between;align-items:end;margin:36px 0 15px}
@@ -137,7 +138,7 @@ header, .clinical-header{display:flex;justify-content:space-between;align-items:
 .metric-icon, .clinical-stat>span{position:absolute;right:15px;top:16px;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:14px;font-weight:bold}
 .green, .blue, .red, .amber, .purple{border-radius:8px}
 .green{background:var(--accent-light);color:var(--accent-primary)}
-.blue{background:#eaf4ff;color:#2563eb}
+.blue{background:#eff6ff;color:#2563eb}
 .red{background:#fef2f2;color:#dc2626}
 .amber{background:#fffbeb;color:#d97706}
 .purple{background:#f5f3ff;color:#7c3aed}
