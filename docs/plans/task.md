@@ -1,8 +1,7 @@
 | Task | Status | Details |
 | --- | --- | --- |
-| Double Border Diagnosis | Completed | Found double horizontal border under `Recent readings` caused by overlapping `.card-title` border-bottom + `.reading-row` border-top |
-| Load brainstorming skill | Completed | Initialized brainstorming for Double Border Elimination & Equal Height Cards |
-| Write design doc | Completed | Saved & committed `docs/plans/2026-07-27-double-border-fix-design.md` |
-| Invoke writing-plans | Completed | Saved & committed `docs/plans/2026-07-27-double-border-fix.md` |
-| Task 1: Update CSS Tokens | Completed | Removed `.card-title` border-bottom and anchored `.care-footer` with equal flex height |
-| Task 2: Verification & Tests | Completed | Typecheck passed 0 errors & Vitest unit tests 100% passed |
+| Duplicate Switch Button Diagnosis | Completed | Found duplicate switching buttons rendered in both `<AppHeader />` and `<AppSidebar />` |
+| Load brainstorming skill | Completed | Initialized brainstorming for Duplicate Portal Switch Button Removal |
+| Write design doc | Completed | Saved & committed `docs/plans/2026-07-27-remove-duplicate-switch-button-design.md` |
+| Invoke writing-plans | Completed | Saved & committed `docs/plans/2026-07-27-remove-duplicate-switch-button.md` |
+| Execute implementation plan | In Progress | Ready to execute via `.agent/workflows/execute-plan.md` |
