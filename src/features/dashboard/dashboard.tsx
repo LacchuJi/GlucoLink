@@ -325,7 +325,7 @@ export function Dashboard() {
               <article className="list-card">
                 <div className="card-title">
                   <div><h2>Recent readings</h2><p>{Math.min(4, readings.length)} readings shown</p></div>
-                  <button onClick={() => setActiveTab("readings")}>View history →</button>
+                  <button className="btn-link" onClick={() => setActiveTab("readings")}>View history →</button>
                 </div>
                 {readings.slice(-4).reverse().map((r) => (
                   <div className="reading-row" key={r.id}>
@@ -341,7 +341,7 @@ export function Dashboard() {
                 <p>500 mg · Take with dinner</p>
                 <div className="care-footer">
                   <span>◷ Scheduled for 8:00 PM</span>
-                  <button onClick={() => setMeds(meds.map(m => m.id === "1" ? { ...m, taken: !m.taken } : m))}>{meds.find(m => m.id === "1")?.taken ? "Taken ✓" : "Mark taken"}</button>
+                  <button className="btn-pill" onClick={() => setMeds(meds.map(m => m.id === "1" ? { ...m, taken: !m.taken } : m))}>{meds.find(m => m.id === "1")?.taken ? "Taken ✓" : "Mark taken"}</button>
                 </div>
               </article>
             </section>
@@ -425,7 +425,7 @@ export function Dashboard() {
                       <strong style={{ fontSize: "16px", color: "var(--text-heading)" }}>{m.name} ({m.dosage})</strong>
                       <small style={{ display: "block", color: "var(--text-muted)", marginTop: "3px" }}>{m.timing}</small>
                     </div>
-                    <button onClick={() => setMeds(meds.map(item => item.id === m.id ? { ...item, taken: !item.taken } : item))} style={{ padding: "8px 16px", borderRadius: "8px", background: m.taken ? "var(--accent-light)" : "var(--accent-primary)", color: m.taken ? "var(--accent-primary)" : "#fff", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "13px" }}>
+                    <button onClick={() => setMeds(meds.map(item => item.id === m.id ? { ...item, taken: !item.taken } : item))} className="btn-pill" style={{ background: m.taken ? "var(--accent-light)" : "var(--accent-primary)", color: m.taken ? "var(--accent-primary)" : "#fff" }}>
                       {m.taken ? "Completed ✓" : "Mark Taken"}
                     </button>
                   </div>
@@ -534,7 +534,7 @@ export function Dashboard() {
         <div className="modal-backdrop">
           <div className="modal" style={{ maxWidth: "420px" }}>
             <button type="button" className="close" onClick={() => setIsAttachOpen(false)}>×</button>
-            <p className="eyebrow">TELEHEALTH ATTACHMENT</p>
+            <p className="eyebrow" style={{ marginTop: "4px" }}>TELEHEALTH ATTACHMENT</p>
             <h2>Select Glucose Reading</h2>
             <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>Choose a reading entry to share with your care team in chat.</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "250px", overflowY: "auto" }}>
@@ -556,7 +556,7 @@ export function Dashboard() {
         <div className="modal-backdrop">
           <form className="modal" onSubmit={save}>
             <button type="button" className="close" onClick={() => setOpen(false)}>×</button>
-            <p className="eyebrow">NEW READING</p>
+            <p className="eyebrow" style={{ marginTop: "4px" }}>NEW READING</p>
             <h2>Log blood glucose</h2>
             <label>Glucose value
               <div className="input-wrap">

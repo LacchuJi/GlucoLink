@@ -4,4 +4,6 @@
 | Load brainstorming skill | Completed | Initialized brainstorming for Universal Button Reset & Layout Fix |
 | Write design doc | Completed | Saved & committed `docs/plans/2026-07-27-universal-button-reset-design.md` |
 | Invoke writing-plans | Completed | Saved & committed `docs/plans/2026-07-27-universal-button-reset.md` |
-| Execute implementation plan | In Progress | Ready to execute via `.agent/workflows/execute-plan.md` |
+| Task 1: Universal CSS Button Reset | Completed | Added `button` reset to `globals.css` eliminating native 3D browser box buttons |
+| Task 2: Fix Dashboard & Modal Buttons | Completed | Refactored `View history →`, `Mark taken`, `•••`, and modal close `×` with explicit classes |
+| Task 3: Verification & Tests | Completed | Typecheck passed 0 errors & Vitest unit tests 100% passed |
