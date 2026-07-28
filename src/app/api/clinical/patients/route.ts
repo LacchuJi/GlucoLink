@@ -1,29 +1,16 @@
-import { requireUser, audit } from "@/lib/access";
+import { requireDoctor, audit } from "@/lib/access";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+import { rateLimit, getRateLimitKey, RATE_LIMITS, rateLimitResponse } from "@/lib/rate-limit";
 
-export async function GET() {
+const assignPatientSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export async function GET(request: Request) {
   try {
-    const user = await requireUser();
-    let doctor = await prisma.doctor.findUnique({ where: { userId: user.id } });
-
-    // Fallback if user is in Patient role or Clinician Preview Mode
-    if (!doctor) {
-      doctor = await prisma.doctor.findFirst();
-    }
-
-    if (!doctor) {
-      return Response.json({ patients: [], organization: null });
-    }
-
-    // Auto-ensure logged-in patient user has a CareAssignment with doctor
-    const userPatient = await prisma.patient.findUnique({ where: { userId: user.id } });
-    if (userPatient) {
-      await prisma.careAssignment.upsert({
-        where: { doctorId_patientId: { doctorId: doctor.id, patientId: userPatient.id } },
-        update: {},
-        create: { doctorId: doctor.id, patientId: userPatient.id }
-      });
-    }
+    // Strict: only verified doctors can see the patient list
+    const { doctor } = await requireDoctor();
 
     const assignments = await prisma.careAssignment.findMany({
       where: { doctorId: doctor.id },
@@ -42,19 +29,40 @@ export async function GET() {
       }
     });
 
-    const snapshots = assignments.map(assignment => {
+    const snapshots = assignments.map((assignment) => {
       const p = assignment.patient;
       const u = p.user;
       const readings = p.readings;
-      
-      const initials = (u.name || "Unknown Patient").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+
+      const initials = (u.name || "Unknown Patient")
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
       const lastReading = readings.length > 0 ? readings[0].valueMgDl : 0;
-      const lastLoggedHoursAgo = readings.length > 0 ? Math.floor((Date.now() - readings[0].recordedAt.getTime()) / (1000 * 60 * 60)) : 999;
-      const lowEvents7d = readings.filter(r => r.valueMgDl < 70 && r.recordedAt.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length;
-      const timeInRange = readings.length > 0 ? Math.round((readings.filter(r => r.valueMgDl >= 70 && r.valueMgDl <= 180).length / readings.length) * 100) : 0;
-      const average = readings.length > 0 ? Math.round(readings.reduce((sum, r) => sum + r.valueMgDl, 0) / readings.length) : 0;
+      const lastLoggedHoursAgo =
+        readings.length > 0
+          ? Math.floor((Date.now() - readings[0].recordedAt.getTime()) / (1000 * 60 * 60))
+          : 999;
+      const lowEvents7d = readings.filter(
+        (r) =>
+          r.valueMgDl < 70 && r.recordedAt.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000
+      ).length;
+      const timeInRange =
+        readings.length > 0
+          ? Math.round(
+              (readings.filter((r) => r.valueMgDl >= 70 && r.valueMgDl <= 180).length /
+                readings.length) *
+                100
+            )
+          : 0;
+      const average =
+        readings.length > 0
+          ? Math.round(readings.reduce((sum, r) => sum + r.valueMgDl, 0) / readings.length)
+          : 0;
       const a1c = average > 0 ? parseFloat(((average + 46.7) / 28.7).toFixed(1)) : 0;
-      
+
       return {
         id: p.id,
         name: u.name,
@@ -67,37 +75,53 @@ export async function GET() {
         lastLoggedHoursAgo,
         unreadMessages: 0,
         lowEvents7d,
-        trendPct14d: 0
+        trendPct14d: 0,
       };
     });
 
-    await audit(user.id, "READ", "PatientList");
+    await audit(doctor.userId, "READ", "PatientList");
 
     return Response.json({ patients: snapshots, organization: null });
   } catch (error) {
-    console.error("Patients API error:", error);
-    return Response.json({ patients: [] });
+    const isAuth =
+      error instanceof Error &&
+      (error.message === "UNAUTHENTICATED" ||
+        error.message === "FORBIDDEN" ||
+        error.message === "DOCTOR_PROFILE_MISSING");
+    return Response.json(
+      { error: isAuth ? "Access denied" : "Failed to load patient list" },
+      { status: isAuth ? 403 : 500 }
+    );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const user = await requireUser();
-    let doctor = await prisma.doctor.findUnique({ where: { userId: user.id } });
-    if (!doctor) {
-      doctor = await prisma.doctor.findFirst();
+    // Rate limit: 20 patient assignments per minute per IP
+    const rlKey = getRateLimitKey(request, "patients");
+    const rl = rateLimit(rlKey, RATE_LIMITS.PATIENTS);
+    if (!rl.success) return rateLimitResponse(rl.resetAt);
+
+    // Strict: only verified doctors can assign patients
+    const { doctor } = await requireDoctor();
+
+    const body = await request.json();
+    const parsed = assignPatientSchema.safeParse(body);
+    if (!parsed.success) {
+      return Response.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
-    if (!doctor) return Response.json({ error: "No clinician account found" }, { status: 400 });
 
-    const { email } = await request.json();
-    if (!email) return Response.json({ error: "Email is required" }, { status: 400 });
+    const { email } = parsed.data;
 
-    const userToAssign = await prisma.user.findFirst({ 
-      where: { email: { equals: email.trim(), mode: "insensitive" } } 
+    const userToAssign = await prisma.user.findFirst({
+      where: { email: { equals: email.trim(), mode: "insensitive" } },
     });
-    
+
     if (!userToAssign) {
-      return Response.json({ error: `No account found for "${email}". The patient must create an account first.` }, { status: 404 });
+      return Response.json(
+        { error: `No account found for that email. The patient must sign up first.` },
+        { status: 404 }
+      );
     }
 
     // Ensure patient profile exists
@@ -110,12 +134,21 @@ export async function POST(request: Request) {
     await prisma.careAssignment.upsert({
       where: { doctorId_patientId: { doctorId: doctor.id, patientId: patient.id } },
       update: {},
-      create: { doctorId: doctor.id, patientId: patient.id }
+      create: { doctorId: doctor.id, patientId: patient.id },
     });
+
+    await audit(doctor.userId, "CREATE", "CareAssignment", patient.id);
 
     return Response.json({ success: true });
   } catch (error) {
-    console.error("Assignment error:", error);
-    return Response.json({ error: error instanceof Error ? error.message : "Failed to assign patient" }, { status: 500 });
+    const isAuth =
+      error instanceof Error &&
+      (error.message === "UNAUTHENTICATED" ||
+        error.message === "FORBIDDEN" ||
+        error.message === "DOCTOR_PROFILE_MISSING");
+    return Response.json(
+      { error: isAuth ? "Access denied" : "Failed to assign patient" },
+      { status: isAuth ? 403 : 500 }
+    );
   }
 }

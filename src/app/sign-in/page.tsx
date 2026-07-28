@@ -97,27 +97,21 @@ export default function SignInPage() {
         body: JSON.stringify({ role })
       });
       const data = await res.json();
-      if (data.email && data.password) {
-        const loginRes = await authClient.signIn.email({
-          email: data.email,
-          password: data.password
-        });
-        if (loginRes.error) {
-          setError("Demo login failed: " + loginRes.error.message);
-          setPending(false);
-          return;
-        }
-        router.replace(data.redirectTo || "/");
-        router.refresh();
-      } else {
+      if (!res.ok) {
         setError(data.error || "Demo login failed.");
+        setPending(false);
+        return;
       }
+      // Server already set the session cookie — just redirect
+      router.replace(data.redirectTo || "/");
+      router.refresh();
     } catch {
       setError("Demo authentication error.");
     } finally {
       setPending(false);
     }
   }
+
 
   return (
     <main className="auth-page">
