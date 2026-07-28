@@ -4,16 +4,13 @@
  * Better Auth handles CSRF for its own /api/auth/* endpoints.
  * This utility protects our custom POST/PUT/DELETE handlers.
  *
- * Strategy: Origin/Referer header validation.
- * The browser always sends an Origin or Referer header on cross-origin requests.
- * Legitimate same-origin requests from our frontend will match APP_URL.
+ * Strategy: Same-Origin validation via Host and Origin/Referer headers.
  */
 
 const ALLOWED_ORIGINS = new Set(
   [
     process.env.BETTER_AUTH_URL,
     process.env.NEXT_PUBLIC_APP_URL,
-    // Allow localhost variants in development
     ...(process.env.NODE_ENV === "development"
       ? ["http://localhost:3000", "http://127.0.0.1:3000"]
       : []),
@@ -25,30 +22,47 @@ const ALLOWED_ORIGINS = new Set(
  * Returns `true` if the request is safe to process.
  */
 export function validateCsrfOrigin(request: Request): boolean {
+  const host = request.headers.get("host");
   const origin = request.headers.get("origin");
   const referer = request.headers.get("referer");
 
-  // Check Origin header first (most reliable)
-  if (origin) {
-    return ALLOWED_ORIGINS.has(origin);
-  }
+  // Dynamic Same-Origin check against the incoming host header
+  if (host) {
+    const httpHostOrigin = `http://${host}`;
+    const httpsHostOrigin = `https://${host}`;
 
-  // Fall back to Referer header
-  if (referer) {
-    try {
-      const refererOrigin = new URL(referer).origin;
-      return ALLOWED_ORIGINS.has(refererOrigin);
-    } catch {
-      return false;
+    if (origin && (origin === httpHostOrigin || origin === httpsHostOrigin || ALLOWED_ORIGINS.has(origin))) {
+      return true;
+    }
+
+    if (referer) {
+      try {
+        const refOrigin = new URL(referer).origin;
+        if (refOrigin === httpHostOrigin || refOrigin === httpsHostOrigin || ALLOWED_ORIGINS.has(refOrigin)) {
+          return true;
+        }
+      } catch {
+        // Continue fallback
+      }
     }
   }
 
-  // No Origin or Referer — reject in production, allow in development
-  // (some tools like curl and Postman don't send these headers)
-  if (process.env.NODE_ENV === "production") {
-    return false;
+  // Fallback check against static ALLOWED_ORIGINS
+  if (origin && ALLOWED_ORIGINS.has(origin)) return true;
+  if (referer) {
+    try {
+      if (ALLOWED_ORIGINS.has(new URL(referer).origin)) return true;
+    } catch {
+      // Ignore invalid referer syntax
+    }
   }
-  return true;
+
+  // Allow requests without origin/referer in development mode (curl/postman/same-origin navigation)
+  if (process.env.NODE_ENV === "development") {
+    return true;
+  }
+
+  return false;
 }
 
 /**
